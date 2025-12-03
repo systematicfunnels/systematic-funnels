@@ -1,0 +1,90 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+        
+
+model Profile {
+  id                String    @id @db.Uuid
+  full_name         String?
+  api_credits       Int       @default(1000)
+  email_verified    Boolean   @default(false)
+  verification_token String?  @unique
+  password_reset_token String? @unique
+  password_reset_expires DateTime?
+  two_factor_enabled  Boolean   @default(false)
+  two_factor_secret   String?
+  backup_codes        String[]  // JSON array of backup codes
+  last_login_at       DateTime?
+  login_attempts      Int       @default(0)
+  locked_until        DateTime?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+  role                UserRole  @default(USER)
+  sessions            Session[]
+  audit_logs          AuditLog[]
+  user_permissions    UserPermission[]
+
+  @@map("profiles")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  description String?
+  resource    String   // e.g., "projects", "documents", "users"
+  action      String   // e.g., "read", "write", "delete", "admin"
+  user_permissions UserPermission[]
+
+  @@map("permissions")
+}
+
+model UserPermission {
+  id           String     @id @default(uuid()) @db.Uuid
+  profile_id   String     @db.Uuid
+  profile      Profile    @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+  permission_id String    @db.Uuid
+  permission   Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+  granted_at   DateTime   @default(now())
+  granted_by   String?    @db.Uuid // Admin who granted this permission
+
+  @@unique([profile_id, permission_id])
+  @@map("user_permissions")
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.Uuid
+  profile_id   String   @db.Uuid
+  profile      Profile  @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+  token        String   @unique
+  ip_address   String?
+  user_agent   String?
+  expires_at   DateTime
+  created_at   DateTime @default(now())
+  last_accessed DateTime @default(now())
+
+  @@map("sessions")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  profile_id  String   @db.Uuid
+  profile     Profile  @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+  action      String   // e.g., "login", "logout", "password_reset", "permission_change"
+  details     Json?    // Additional context
+  ip_address  String?
+  user_agent  String?
+  created_at  DateTime @default(now())
+
+  @@map("audit_logs")
+}
