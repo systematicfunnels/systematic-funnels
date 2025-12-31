@@ -292,6 +292,33 @@ export async function extractProjectDetails(input: string): Promise<AIResult> {
   return result;
 }
 
+// === FEATURE BRAINSTORMING ===
+export async function brainstormFeatures(concept: string, problem: string): Promise<{ success: boolean; features?: string[]; error?: string }> {
+  const prompt = `
+    Based on the following project concept and problem statement, brainstorm 5-7 core features that would make this a successful product.
+    
+    Concept: ${concept}
+    Problem: ${problem}
+    
+    Return ONLY a JSON array of strings. 
+    Example: ["User Authentication", "Dashboard", "Push Notifications"]
+  `;
+
+  const result = await callAI(prompt, 'BRAINSTORM');
+  
+  if (result.success && result.content) {
+    try {
+      const cleanJson = result.content.replace(/```json/g, '').replace(/```/g, '').trim();
+      return { success: true, features: JSON.parse(cleanJson) };
+    } catch (e) {
+      console.error("Failed to parse AI brainstorm JSON:", e, result.content);
+      return { success: false, error: "Failed to parse AI response" };
+    }
+  }
+  
+  return { success: false, error: result.error || "Brainstorming failed" };
+}
+
 // === CENTRALIZED GENERATOR ===
 export async function generateDocument(docType: DocType, req: AIGenerationRequest): Promise<AIResult> {
   // Use Generic Builder for all types in the hierarchy

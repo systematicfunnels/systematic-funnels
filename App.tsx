@@ -281,6 +281,7 @@ const App: React.FC = () => {
                     projects={projects} 
                     onRegenerateDoc={handleRegenerateDoc} 
                     onUpdateDoc={handleUpdateDoc}
+                    onShowToast={showToast}
                   />
                 } />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />

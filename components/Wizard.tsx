@@ -1,7 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { X, ArrowRight, Check, Sparkles, Plus, Trash2, Loader2, Wand2, User } from 'lucide-react';
 import { Project } from '../types';
-import { extractProjectDetails } from '../api/aiService';
+import { extractProjectDetails, brainstormFeatures } from '../api/aiService';
+
+const PROMPT_TEMPLATES = [
+  {
+    title: "SaaS for Creators",
+    icon: "🎨",
+    text: "I want to build a platform for digital creators to manage their sponsorships, track link clicks across social platforms, and generate monthly reports for brands. It should have a clean dashboard and integration with Stripe."
+  },
+  {
+    title: "Fitness App",
+    icon: "🏃",
+    text: "A mobile-first fitness app focused on desk workers. It should suggest 5-minute stretches every 2 hours, track water intake, and allow teams to compete in weekly 'movement' challenges. Budget is small."
+  },
+  {
+    title: "Marketplace",
+    icon: "🛍️",
+    text: "A niche marketplace for sustainable pet products. I need a vendor dashboard, customer reviews, and a referral system. Should be built with React and Supabase for speed."
+  },
+  {
+    title: "AI Writing Tool",
+    icon: "✍️",
+    text: "A chrome extension that helps LinkedIn creators write better posts. It should analyze their tone, suggest better hooks, and allow them to schedule posts. Using Gemini API."
+  }
+];
 
 interface WizardProps {
   onClose: () => void;
@@ -14,6 +37,7 @@ const Wizard: React.FC<WizardProps> = ({ onClose, onSubmit, initialData }) => {
   const [mode, setMode] = useState<'manual' | 'ai'>('manual');
   const [aiInput, setAiInput] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isBrainstorming, setIsBrainstorming] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     problem: '',
@@ -100,6 +124,28 @@ const Wizard: React.FC<WizardProps> = ({ onClose, onSubmit, initialData }) => {
     }
   };
 
+  const handleBrainstorm = async () => {
+    if (!formData.concept || !formData.problem) {
+      alert("Please provide a concept and problem first so AI can suggest features.");
+      return;
+    }
+    
+    setIsBrainstorming(true);
+    try {
+      const result = await brainstormFeatures(formData.concept, formData.problem);
+      if (result.success && result.features) {
+        // Filter out empty features and merge with new ones
+        const existing = formData.features.filter(f => f.trim() !== '');
+        const combined = [...existing, ...result.features].slice(0, 10);
+        setFormData(prev => ({ ...prev, features: combined.length > 0 ? combined : [''] }));
+      }
+    } catch (error) {
+      console.error("Brainstorming error:", error);
+    } finally {
+      setIsBrainstorming(false);
+    }
+  };
+
   const renderStep1 = () => (
     <div className="space-y-6 animate-in slide-in-from-right duration-300">
       {/* Mode Toggle */}
@@ -128,13 +174,33 @@ const Wizard: React.FC<WizardProps> = ({ onClose, onSubmit, initialData }) => {
             <h3 className="text-sm font-bold text-primary flex items-center gap-2 mb-1">
               <Sparkles size={16} /> Magic Fill
             </h3>
-            <p className="text-xs text-textMuted">Paste a project summary, meeting transcript, or rough notes. AI will extract all details for you.</p>
+            <p className="text-xs text-textMuted">Paste a project summary or rough notes. AI will extract all details for you.</p>
           </div>
+          
+          <div className="space-y-3">
+             <p className="text-[10px] font-bold text-textMuted uppercase tracking-wider">Try a template:</p>
+             <div className="grid grid-cols-2 gap-2">
+                {PROMPT_TEMPLATES.map((t, i) => (
+                   <button 
+                      key={i}
+                      onClick={() => setAiInput(t.text)}
+                      className="p-3 text-left bg-surface border border-border rounded-xl hover:border-primary/50 transition-all group"
+                   >
+                      <div className="flex items-center gap-2 mb-1">
+                         <span className="text-sm">{t.icon}</span>
+                         <span className="text-xs font-bold group-hover:text-primary transition-colors">{t.title}</span>
+                      </div>
+                      <p className="text-[10px] text-textMuted line-clamp-2 leading-tight">{t.text}</p>
+                   </button>
+                ))}
+             </div>
+          </div>
+
           <textarea 
             value={aiInput}
             onChange={(e) => setAiInput(e.target.value)}
-            placeholder="Example: I want to build a fitness app for remote workers. It should track daily steps, suggest desk exercises, and have a community leaderboard. Budget is around 10k and I want it in 3 months..."
-            rows={8}
+            placeholder="Describe your project in detail..."
+            rows={6}
             className="w-full bg-surface border border-border rounded-xl p-4 focus:border-primary outline-none text-sm leading-relaxed"
           />
           <button 
@@ -202,40 +268,63 @@ const Wizard: React.FC<WizardProps> = ({ onClose, onSubmit, initialData }) => {
 
   const renderStep2 = () => (
     <div className="space-y-6 animate-in slide-in-from-right duration-300">
-      <div className="flex justify-between items-center">
-        <label className="block text-sm font-medium text-textMuted">Key Features</label>
-        <span className="text-xs text-secondary">{formData.features.filter(f => f).length} added</span>
-      </div>
-      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-        {formData.features.map((feat, idx) => (
-          <div key={idx} className="flex gap-2 items-center group">
-            <span className="text-xs text-textMuted w-4">{idx + 1}.</span>
-            <input 
-              type="text"
-              value={feat}
-              onChange={(e) => updateFeature(idx, e.target.value)}
-              placeholder="Describe a feature..."
-              className="flex-1 bg-surface border border-border rounded-lg p-3 focus:border-primary outline-none"
-              autoFocus={idx === formData.features.length - 1}
-            />
-            {formData.features.length > 1 && (
-              <button 
-                onClick={() => removeFeature(idx)}
-                className="text-textMuted hover:text-red-400 p-2 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Trash2 size={16} />
-              </button>
-            )}
-          </div>
-        ))}
-        {formData.features.length < 10 && (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-bold text-textMain flex items-center gap-2">
+            Core Features <span className="text-[10px] font-normal text-textMuted">(Max 10)</span>
+          </label>
           <button 
-            onClick={addFeature}
-            className="flex items-center gap-2 text-sm text-primary hover:text-primaryHover ml-6"
+            onClick={handleBrainstorm}
+            disabled={isBrainstorming || !formData.concept}
+            className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 hover:bg-primary/20 text-primary rounded-full text-[10px] font-bold transition-all border border-primary/20 disabled:opacity-50"
           >
-            <Plus size={16} /> Add another feature
+            {isBrainstorming ? (
+              <>
+                <Loader2 size={12} className="animate-spin" /> Suggesting...
+              </>
+            ) : (
+              <>
+                <Sparkles size={12} /> Suggest Features
+              </>
+            )}
           </button>
-        )}
+        </div>
+        <div className="space-y-3">
+          {formData.features.map((feature, index) => (
+            <div key={index} className="flex gap-2 group">
+              <div className="flex-1 relative">
+                <input 
+                  type="text"
+                  value={feature}
+                  onChange={(e) => {
+                    const newFeatures = [...formData.features];
+                    newFeatures[index] = e.target.value;
+                    setFormData({ ...formData, features: newFeatures });
+                  }}
+                  placeholder={`Feature ${index + 1}...`}
+                  className="w-full bg-surface border border-border rounded-xl px-4 py-3 focus:border-primary outline-none text-sm"
+                />
+              </div>
+              <button 
+                onClick={() => {
+                  const newFeatures = formData.features.filter((_, i) => i !== index);
+                  setFormData({ ...formData, features: newFeatures.length > 0 ? newFeatures : [''] });
+                }}
+                className="p-3 text-textMuted hover:text-red-400 transition-colors"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          ))}
+          {formData.features.length < 10 && (
+            <button 
+              onClick={() => setFormData({ ...formData, features: [...formData.features, ''] })}
+              className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-border rounded-xl text-textMuted hover:border-primary hover:text-primary transition-all text-sm font-medium"
+            >
+              <Plus size={18} /> Add Another Feature
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

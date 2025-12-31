@@ -13,6 +13,20 @@ export const HIERARCHY_GROUPS = [
   "9. Process & Governance"
 ];
 
+export const PHASE_COLORS: Record<string, string> = {
+  "1. Strategy & Context": "blue",
+  "2. Product Requirements": "emerald",
+  "3. Architecture & Design": "purple",
+  "4. Implementation & Code": "orange",
+  "5. Quality & Testing": "amber",
+  "6. Operations & DevOps": "cyan",
+  "7. User & Customer Docs": "pink",
+  "8. Business & GTM": "indigo",
+  "9. Process & Governance": "slate"
+};
+
+export const getPhaseColor = (phase: string) => PHASE_COLORS[phase] || "primary";
+
 export const DOC_HIERARCHY: Record<string, HierarchyNode> = {
   // 1. Strategy
   [DocType.STRATEGY_VISION]: {

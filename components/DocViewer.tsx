@@ -6,6 +6,7 @@ import { refineDocument } from '../api/aiService';
 interface DocViewerProps {
   document: Document;
   onUpdate?: (content: string) => void;
+  onShowToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 interface Section {
@@ -16,11 +17,19 @@ interface Section {
   isEditing: boolean;
 }
 
-const DocViewer: React.FC<DocViewerProps> = ({ document, onUpdate }) => {
+const DocViewer: React.FC<DocViewerProps> = ({ document, onUpdate, onShowToast }) => {
   const [sections, setSections] = useState<Section[]>([]);
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [refineInstruction, setRefineInstruction] = useState('');
   const [isRefining, setIsRefining] = useState<string | null>(null); // section id being refined
+  const [showRefineAll, setShowRefineAll] = useState(false);
+  
+  const REFINE_PRESETS = [
+    { label: 'Professional', icon: '👔', prompt: 'Make the tone more professional and business-oriented.' },
+    { label: 'Concise', icon: '✂️', prompt: 'Make it more concise and remove fluff.' },
+    { label: 'Creative', icon: '✨', prompt: 'Add more creative flair and descriptive language.' },
+    { label: 'Actionable', icon: '🎯', prompt: 'Focus on clear next steps and actionable items.' },
+  ];
   
   // Smart Parser: Split markdown into structured sections
   useEffect(() => {
@@ -110,8 +119,9 @@ const DocViewer: React.FC<DocViewerProps> = ({ document, onUpdate }) => {
      setActiveSectionId(null);
   };
 
-  const handleRefineSection = async (id: string) => {
-     if (!refineInstruction.trim()) return;
+  const handleRefineSection = async (id: string, customInstruction?: string) => {
+     const instruction = customInstruction || refineInstruction;
+     if (!instruction.trim()) return;
      
      const section = sections.find(s => s.id === id);
      if (!section) return;
@@ -119,17 +129,37 @@ const DocViewer: React.FC<DocViewerProps> = ({ document, onUpdate }) => {
      setIsRefining(id);
      
      // Send ONLY this section to AI
-     const result = await refineDocument(section.content, refineInstruction, document.type);
+     const result = await refineDocument(section.content, instruction, document.type);
      
      if (result.success && result.content) {
         handleUpdateSection(id, result.content);
         // Auto-save effectively
         const updatedSecs = sections.map(s => s.id === id ? { ...s, content: result.content } : s);
         if (onUpdate) onUpdate(reconstructDoc(updatedSecs));
+        onShowToast?.('Section refined successfully', 'success');
+     } else {
+        onShowToast?.('Failed to refine section', 'error');
      }
      
      setIsRefining(null);
      setRefineInstruction('');
+  };
+
+  const handleRefineAll = async (instruction: string) => {
+    if (!instruction.trim()) return;
+    setIsRefining('all');
+    
+    const result = await refineDocument(document.content, instruction, document.type);
+    
+    if (result.success && result.content) {
+      if (onUpdate) onUpdate(result.content);
+      onShowToast?.('Document refined successfully', 'success');
+    } else {
+      onShowToast?.('Failed to refine document', 'error');
+    }
+    
+    setIsRefining(null);
+    setShowRefineAll(false);
   };
 
   // Rendering Helpers
@@ -204,17 +234,78 @@ const DocViewer: React.FC<DocViewerProps> = ({ document, onUpdate }) => {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-background p-4 md:p-8 scroll-smooth">
+    <div className="h-full overflow-y-auto bg-background p-4 md:p-8 scroll-smooth print:bg-white print:p-0">
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          body { background: white !important; color: black !important; }
+          .bg-surface, .bg-background, .bg-surfaceHover { background: white !important; border-color: #eee !important; }
+          .text-white, .text-primary, .text-textMain, .text-textMuted { color: black !important; }
+          .border { border-color: #eee !important; }
+          .shadow-lg, .shadow-sm { shadow: none !important; }
+          pre, blockquote { border: 1px solid #ddd !important; }
+          a { color: blue !important; text-decoration: underline !important; }
+          .max-w-4xl { max-width: 100% !important; width: 100% !important; margin: 0 !important; }
+          .pb-20 { padding-bottom: 0 !important; }
+        }
+      `}</style>
       <div className="max-w-4xl mx-auto pb-20 space-y-6">
         
         {/* Document Header */}
-        <div className="mb-8 border-b border-border pb-6">
-           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{document.title.replace(/_/g, ' ')}</h1>
-           <p className="text-textMuted flex items-center gap-2 text-sm">
-              <Check size={14} className="text-green-400" /> Auto-saved
-              <span className="w-1 h-1 bg-border rounded-full mx-1"></span>
-              {sections.length} Sections
-           </p>
+        <div className="mb-8 border-b border-border pb-6 flex items-end justify-between">
+           <div>
+             <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{document.title.replace(/_/g, ' ')}</h1>
+             <p className="text-textMuted flex items-center gap-2 text-sm">
+                <Check size={14} className="text-emerald-400" /> Auto-saved
+                <span className="w-1 h-1 bg-border rounded-full mx-1"></span>
+                {sections.length} Sections
+             </p>
+           </div>
+           
+           <div className="relative no-print">
+             <button 
+               onClick={() => setShowRefineAll(!showRefineAll)}
+               className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/20 transition-all font-bold text-sm"
+             >
+               {isRefining === 'all' ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+               Refine All
+             </button>
+
+             {showRefineAll && (
+               <div className="absolute right-0 mt-2 w-72 bg-surface border border-border rounded-xl shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-top-2">
+                 <p className="text-xs font-bold text-textMuted uppercase tracking-wider mb-3">Refine entire document</p>
+                 <div className="grid grid-cols-2 gap-2 mb-4">
+                   {REFINE_PRESETS.map((preset) => (
+                     <button
+                       key={preset.label}
+                       onClick={() => handleRefineAll(preset.prompt)}
+                       className="p-2 text-left bg-surfaceHover border border-border rounded-lg hover:border-primary/50 transition-all group"
+                     >
+                       <span className="text-lg mb-1 block">{preset.icon}</span>
+                       <span className="text-[10px] font-bold group-hover:text-primary transition-colors">{preset.label}</span>
+                     </button>
+                   ))}
+                 </div>
+                 <div className="flex gap-2">
+                   <input 
+                     type="text" 
+                     placeholder="Custom instruction..."
+                     className="flex-1 bg-background border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary"
+                     value={refineInstruction}
+                     onChange={(e) => setRefineInstruction(e.target.value)}
+                     onKeyDown={(e) => e.key === 'Enter' && handleRefineAll(refineInstruction)}
+                   />
+                   <button 
+                     onClick={() => handleRefineAll(refineInstruction)}
+                     disabled={!refineInstruction.trim()}
+                     className="p-1.5 bg-primary text-white rounded-lg disabled:opacity-50"
+                   >
+                     <Send size={14} />
+                   </button>
+                 </div>
+               </div>
+             )}
+           </div>
         </div>
 
         {sections.map((section) => (
@@ -293,39 +384,39 @@ const DocViewer: React.FC<DocViewerProps> = ({ document, onUpdate }) => {
 
              {/* AI Refine Drawer for Section */}
              {activeSectionId === section.id && !section.isEditing && (
-                <div className="border-t border-border bg-surfaceHover/10 p-4 animate-in slide-in-from-top-2">
-                   <div className="flex gap-2">
-                      <div className="relative flex-1">
-                         <Wand2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary" />
-                         <input 
-                            type="text" 
-                            value={refineInstruction}
-                            onChange={(e) => setRefineInstruction(e.target.value)}
-                            placeholder={`Ask AI to refine "${section.title}"... (e.g. "Make this more professional")`}
-                            className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-3 text-sm focus:border-primary outline-none"
-                            onKeyDown={(e) => e.key === 'Enter' && handleRefineSection(section.id)}
-                         />
-                      </div>
-                      <button 
-                         onClick={() => handleRefineSection(section.id)}
-                         disabled={!refineInstruction.trim() || isRefining === section.id}
-                         className="px-4 bg-primary hover:bg-primaryHover text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
+                <div className="absolute top-full right-0 mt-2 w-72 bg-surface border border-border rounded-xl shadow-2xl p-4 z-20 animate-in fade-in slide-in-from-top-2">
+                  <p className="text-xs font-bold text-textMuted uppercase tracking-wider mb-3">AI Refine Section</p>
+                  
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    {REFINE_PRESETS.map((preset) => (
+                      <button
+                        key={preset.label}
+                        onClick={() => handleRefineSection(section.id, preset.prompt)}
+                        className="p-2 text-left bg-surfaceHover border border-border rounded-lg hover:border-primary/50 transition-all group"
                       >
-                         {isRefining === section.id ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                         <span className="hidden md:inline">Refine</span>
+                        <span className="text-lg mb-1 block">{preset.icon}</span>
+                        <span className="text-[10px] font-bold group-hover:text-primary transition-colors">{preset.label}</span>
                       </button>
-                   </div>
-                   <div className="flex gap-2 mt-3 overflow-x-auto pb-1 no-scrollbar">
-                      {['Fix grammar', 'Make concise', 'Expand details', 'Add examples', 'Change tone to formal'].map(opt => (
-                         <button 
-                            key={opt}
-                            onClick={() => setRefineInstruction(opt)}
-                            className="whitespace-nowrap px-3 py-1.5 rounded-full bg-surface border border-border text-xs text-textMuted hover:text-primary hover:border-primary/50 transition-colors"
-                         >
-                            {opt}
-                         </button>
-                      ))}
-                   </div>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="Ask AI to change something..."
+                      className="flex-1 bg-background border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary"
+                      value={refineInstruction}
+                      onChange={(e) => setRefineInstruction(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleRefineSection(section.id)}
+                    />
+                    <button 
+                      onClick={() => handleRefineSection(section.id)}
+                      disabled={isRefining === section.id || !refineInstruction.trim()}
+                      className="p-1.5 bg-primary text-white rounded-lg disabled:opacity-50"
+                    >
+                      {isRefining === section.id ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                    </button>
+                  </div>
                 </div>
              )}
           </div>
