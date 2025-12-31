@@ -5,16 +5,20 @@ import {
   FolderOpen
 } from 'lucide-react';
 import Wizard from '../components/Wizard';
-import { Project } from '../types';
+import { Project, User } from '../types';
 
 interface DashboardProps {
   projects: Project[];
+  user: User;
   onCreateProject: (data: any) => string;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ projects, onCreateProject }) => {
+const Dashboard: React.FC<DashboardProps> = ({ projects, user, onCreateProject }) => {
   const [showWizard, setShowWizard] = useState(false);
   const navigate = useNavigate();
+
+  const totalDocs = projects.reduce((acc, p) => acc + p.documents.filter(d => d.status === 'completed').length, 0);
+  const hoursSaved = totalDocs * 2; // Heuristic: 2 hours per document
 
   const StatCard = ({ title, value, sub, icon: Icon, trend }: any) => (
     <div className="bg-surface border border-border p-5 rounded-xl hover:border-primary/30 transition-colors cursor-pointer group">
@@ -58,10 +62,10 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, onCreateProject }) => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Active Projects" value={projects.length} sub="2 archived" icon={FolderOpen} trend="+1 this week" />
-        <StatCard title="Documents Generated" value="142" sub="Across all projects" icon={FileText} trend="+12%" />
-        <StatCard title="API Credits" value="550" sub="450 used this month" icon={Activity} />
-        <StatCard title="Hours Saved" value="86h" sub="Compared to manual" icon={Clock} trend="+8%" />
+        <StatCard title="Active Projects" value={projects.length} sub={`${projects.filter(p => p.status === 'completed').length} completed`} icon={FolderOpen} />
+        <StatCard title="Documents Generated" value={totalDocs} sub="Across all projects" icon={FileText} />
+        <StatCard title="API Credits" value={1000 - user.apiCredits} sub="Remaining from 1,000" icon={Activity} />
+        <StatCard title="Hours Saved" value={`${hoursSaved}h`} sub="Compared to manual" icon={Clock} />
       </div>
 
       {/* Recent Projects */}

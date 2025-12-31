@@ -9,10 +9,8 @@ import Templates from './pages/Templates';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import Wizard from './components/Wizard';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
+import Auth from './pages/Auth';
 import EmailVerification from './pages/EmailVerification';
-import PasswordResetRequest from './pages/PasswordResetRequest';
 import PasswordResetConfirm from './pages/PasswordResetConfirm';
 import MfaSetup from './pages/MfaSetup';
 import MfaVerify from './pages/MfaVerify';
@@ -29,10 +27,24 @@ const App: React.FC = () => {
   const [showWizard, setShowWizard] = useState(false);
   const [toast, setToast] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
 
-  useEffect(() => {
-    const session = supabase.auth.getSession();
+  const [loading, setLoading] = useState(true);
 
-    supabase.auth.onAuthStateChange((_event, session) => {
+  useEffect(() => {
+    const initAuth = async () => {
+       const { data: { session } } = await supabase.auth.getSession();
+       if (session?.user) {
+         setUser({
+           id: session.user.id,
+           name: session.user.user_metadata.full_name || session.user.email,
+           email: session.user.email!,
+           apiCredits: 1000,
+         });
+       }
+       setLoading(false);
+    };
+    initAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser({
           id: session.user.id,
@@ -43,7 +55,10 @@ const App: React.FC = () => {
       } else {
         setUser(null);
       }
+      setLoading(false);
     });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -54,7 +69,7 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-     if (projects.length > 0) localStorage.setItem('sf_projects', JSON.stringify(projects));
+     localStorage.setItem('sf_projects', JSON.stringify(projects));
   }, [projects]);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -92,7 +107,6 @@ const App: React.FC = () => {
     const updatedProject = { ...project, documents: hierarchyDocs, status: 'in_progress' as const };
     setProjects(prev => {
        const next = prev.map(p => p.id === project.id ? updatedProject : p);
-       localStorage.setItem('sf_projects', JSON.stringify(next));
        return next;
     });
 
@@ -169,7 +183,6 @@ const App: React.FC = () => {
 
     setProjects(prev => {
        const next = [newProject, ...prev];
-       localStorage.setItem('sf_projects', JSON.stringify(next));
        return next;
     });
     triggerGeneration(newProject);
@@ -223,6 +236,16 @@ const App: React.FC = () => {
     setUser(null);
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  const isAuthCallback = window.location.hash.includes('access_token=') || window.location.hash.includes('error=');
+
   return (
     <Router>
       {toast && (
@@ -236,45 +259,53 @@ const App: React.FC = () => {
 
       <Routes>
         <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Landing />} />
-        <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/verify-email" element={<EmailVerification />} />
-          <Route path="/forgot-password" element={<PasswordResetRequest />} />
-          <Route path="/reset-password" element={<PasswordResetConfirm />} />
-          <Route path="/mfa-setup" element={<MfaSetup />} />
-          <Route path="/mfa-verify" element={<MfaVerify />} />
+        <Route path="/login" element={<Auth />} />
+        <Route path="/signup" element={<Auth />} />
+        <Route path="/forgot-password" element={<Auth />} />
+        <Route path="/verify-email" element={<EmailVerification />} />
+        <Route path="/reset-password" element={<PasswordResetConfirm />} />
+        <Route path="/mfa-setup" element={<MfaSetup />} />
+        <Route path="/mfa-verify" element={<MfaVerify />} />
 
-        <Route path="/*" element={user ? (
-          <Layout user={user} onLogout={handleLogout} showToast={showToast}>
-            <Routes>
-              <Route path="/dashboard" element={<Dashboard projects={projects} onCreateProject={handleCreateProject} />} />
-              <Route path="/projects" element={<Projects projects={projects} />} />
-              <Route path="/templates" element={<Templates onUseTemplate={(t) => { setActiveTemplate(t); setShowWizard(true); }} />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/profile" element={<Profile user={user} onShowToast={showToast} />} />
-              <Route path="/project/:id" element={
-                <ProjectDetail 
-                  projects={projects} 
-                  onRegenerateDoc={handleRegenerateDoc} 
-                  onUpdateDoc={handleUpdateDoc}
+        <Route path="/*" element={
+          user ? (
+            <Layout user={user} onLogout={handleLogout} showToast={showToast}>
+              <Routes>
+                <Route path="/dashboard" element={<Dashboard projects={projects} user={user} onCreateProject={handleCreateProject} />} />
+                <Route path="/projects" element={<Projects projects={projects} />} />
+                <Route path="/templates" element={<Templates onUseTemplate={(t) => { setActiveTemplate(t); setShowWizard(true); }} />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/profile" element={<Profile user={user} projects={projects} onShowToast={showToast} />} />
+                <Route path="/project/:id" element={
+                  <ProjectDetail 
+                    projects={projects} 
+                    onRegenerateDoc={handleRegenerateDoc} 
+                    onUpdateDoc={handleUpdateDoc}
+                  />
+                } />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+              {showWizard && (
+                <Wizard 
+                  initialData={activeTemplate?.prefill}
+                  onClose={() => { setShowWizard(false); setActiveTemplate(null); }}
+                  onSubmit={(data) => {
+                    setShowWizard(false);
+                    setActiveTemplate(null);
+                    const projectId = handleCreateProject(data);
+                    window.location.hash = `/project/${projectId}`;
+                  }}
                 />
-              } />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
-            {showWizard && (
-              <Wizard 
-                initialData={activeTemplate?.prefill}
-                onClose={() => { setShowWizard(false); setActiveTemplate(null); }}
-                onSubmit={(data) => {
-                  setShowWizard(false);
-                  setActiveTemplate(null);
-                  const projectId = handleCreateProject(data);
-                  window.location.hash = `/project/${projectId}`;
-                }}
-              />
-            )}
-          </Layout>
-        ) : <Navigate to="/login" replace />} />
+              )}
+            </Layout>
+          ) : isAuthCallback ? (
+            <div className="min-h-screen bg-background flex items-center justify-center">
+              <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        } />
       </Routes>
     </Router>
   );

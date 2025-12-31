@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, ArrowRight, Check, Sparkles, Plus, Trash2 } from 'lucide-react';
+import { X, ArrowRight, Check, Sparkles, Plus, Trash2, Loader2, Wand2, User } from 'lucide-react';
 import { Project } from '../types';
+import { extractProjectDetails } from '../api/aiService';
 
 interface WizardProps {
   onClose: () => void;
@@ -10,6 +11,9 @@ interface WizardProps {
 
 const Wizard: React.FC<WizardProps> = ({ onClose, onSubmit, initialData }) => {
   const [step, setStep] = useState(1);
+  const [mode, setMode] = useState<'manual' | 'ai'>('manual');
+  const [aiInput, setAiInput] = useState('');
+  const [isExtracting, setIsExtracting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     problem: '',
@@ -38,76 +42,161 @@ const Wizard: React.FC<WizardProps> = ({ onClose, onSubmit, initialData }) => {
   }, [initialData]);
 
   const updateField = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev: any) => ({ ...prev, [field]: value }));
   };
 
   const addFeature = () => {
     if (formData.features.length < 10) {
-      setFormData(prev => ({ ...prev, features: [...prev.features, ''] }));
+      setFormData((prev: any) => ({ ...prev, features: [...prev.features, ''] }));
     }
   };
 
   const updateFeature = (idx: number, val: string) => {
     const newFeatures = [...formData.features];
     newFeatures[idx] = val;
-    setFormData(prev => ({ ...prev, features: newFeatures }));
+    setFormData((prev: any) => ({ ...prev, features: newFeatures }));
   };
 
   const removeFeature = (idx: number) => {
-    const newFeatures = formData.features.filter((_, i) => i !== idx);
-    setFormData(prev => ({ ...prev, features: newFeatures }));
+    const newFeatures = formData.features.filter((_, i: number) => i !== idx);
+    setFormData((prev: any) => ({ ...prev, features: newFeatures }));
   };
 
   const toggleTech = (tech: string) => {
-    setFormData(prev => {
+    setFormData((prev: any) => {
       const exists = prev.tech.includes(tech);
-      if (exists) return { ...prev, tech: prev.tech.filter(t => t !== tech) };
+      if (exists) return { ...prev, tech: prev.tech.filter((t: string) => t !== tech) };
       return { ...prev, tech: [...prev.tech, tech] };
     });
   };
 
+  const handleMagicFill = async () => {
+    if (!aiInput.trim()) return;
+    setIsExtracting(true);
+    try {
+      const result = await extractProjectDetails(aiInput);
+      if (result.success && result.data) {
+        const data = result.data;
+        setFormData((prev: any) => ({
+          ...prev,
+          name: data.name || prev.name,
+          concept: data.concept || prev.concept,
+          problem: data.problem || prev.problem,
+          audience: data.audience || prev.audience,
+          features: data.features && data.features.length > 0 ? data.features : prev.features,
+          tech: data.tech && data.tech.length > 0 ? data.tech : prev.tech,
+          budget: data.budget || prev.budget,
+          timeline: data.timeline || prev.timeline
+        }));
+        setMode('manual');
+      } else {
+        alert("Failed to extract details. Please try again or use manual mode.");
+      }
+    } catch (error) {
+      console.error("Extraction error:", error);
+      alert("An error occurred during extraction.");
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
   const renderStep1 = () => (
     <div className="space-y-6 animate-in slide-in-from-right duration-300">
-      <div>
-        <label className="block text-sm font-medium text-textMuted mb-2">Project Name</label>
-        <input 
-          type="text" 
-          value={formData.name}
-          onChange={(e) => updateField('name', e.target.value)}
-          placeholder="e.g., Fitness Tracking App"
-          className="w-full bg-surface border border-border rounded-lg p-3 focus:border-primary focus:ring-1 focus:ring-primary outline-none text-textMain placeholder-textMuted/50"
-        />
+      {/* Mode Toggle */}
+      <div className="flex bg-surface p-1 rounded-xl border border-border">
+        <button 
+          onClick={() => setMode('manual')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
+            mode === 'manual' ? 'bg-background text-primary shadow-sm' : 'text-textMuted hover:text-textMain'
+          }`}
+        >
+          <User size={16} /> Manual Entry
+        </button>
+        <button 
+          onClick={() => setMode('ai')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
+            mode === 'ai' ? 'bg-background text-primary shadow-sm' : 'text-textMuted hover:text-textMain'
+          }`}
+        >
+          <Wand2 size={16} /> AI Assistant
+        </button>
       </div>
-      <div>
-        <label className="block text-sm font-medium text-textMuted mb-2">Brief Concept</label>
-        <textarea 
-          value={formData.concept}
-          onChange={(e) => updateField('concept', e.target.value)}
-          placeholder="1-2 line overview of your product..."
-          rows={2}
-          className="w-full bg-surface border border-border rounded-lg p-3 focus:border-primary outline-none"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-textMuted mb-2">Problem to Solve</label>
-        <textarea 
-          value={formData.problem}
-          onChange={(e) => updateField('problem', e.target.value)}
-          placeholder="Describe the main pain point..."
-          rows={3}
-          className="w-full bg-surface border border-border rounded-lg p-3 focus:border-primary outline-none"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-textMuted mb-2">Target Audience</label>
-        <input 
-          type="text" 
-          value={formData.audience}
-          onChange={(e) => updateField('audience', e.target.value)}
-          placeholder="e.g., Remote workers aged 25-40"
-          className="w-full bg-surface border border-border rounded-lg p-3 focus:border-primary outline-none"
-        />
-      </div>
+
+      {mode === 'ai' ? (
+        <div className="space-y-4">
+          <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
+            <h3 className="text-sm font-bold text-primary flex items-center gap-2 mb-1">
+              <Sparkles size={16} /> Magic Fill
+            </h3>
+            <p className="text-xs text-textMuted">Paste a project summary, meeting transcript, or rough notes. AI will extract all details for you.</p>
+          </div>
+          <textarea 
+            value={aiInput}
+            onChange={(e) => setAiInput(e.target.value)}
+            placeholder="Example: I want to build a fitness app for remote workers. It should track daily steps, suggest desk exercises, and have a community leaderboard. Budget is around 10k and I want it in 3 months..."
+            rows={8}
+            className="w-full bg-surface border border-border rounded-xl p-4 focus:border-primary outline-none text-sm leading-relaxed"
+          />
+          <button 
+            onClick={handleMagicFill}
+            disabled={isExtracting || !aiInput.trim()}
+            className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primaryHover disabled:bg-primary/50 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20"
+          >
+            {isExtracting ? (
+              <>
+                <Loader2 className="animate-spin" size={18} /> Extracting Details...
+              </>
+            ) : (
+              <>
+                <Wand2 size={18} /> Magic Fill Step 1 & 2
+              </>
+            )}
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-textMuted mb-2">Project Name</label>
+            <input 
+              type="text" 
+              value={formData.name}
+              onChange={(e) => updateField('name', e.target.value)}
+              placeholder="e.g., Fitness Tracking App"
+              className="w-full bg-surface border border-border rounded-lg p-3 focus:border-primary focus:ring-1 focus:ring-primary outline-none text-textMain placeholder-textMuted/50"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-textMuted mb-2">Brief Concept</label>
+            <textarea 
+              value={formData.concept}
+              onChange={(e) => updateField('concept', e.target.value)}
+              placeholder="1-2 line overview of your product..."
+              rows={2}
+              className="w-full bg-surface border border-border rounded-lg p-3 focus:border-primary outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-textMuted mb-2">Problem to Solve</label>
+            <textarea 
+              value={formData.problem}
+              onChange={(e) => updateField('problem', e.target.value)}
+              placeholder="Describe the main pain point..."
+              rows={3}
+              className="w-full bg-surface border border-border rounded-lg p-3 focus:border-primary outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-textMuted mb-2">Target Audience</label>
+            <input 
+              type="text" 
+              value={formData.audience}
+              onChange={(e) => updateField('audience', e.target.value)}
+              placeholder="e.g., Remote workers aged 25-40"
+              className="w-full bg-surface border border-border rounded-lg p-3 focus:border-primary outline-none"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 

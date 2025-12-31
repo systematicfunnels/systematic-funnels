@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Lock, ArrowRight, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Lock, ArrowRight, Loader2, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../api/supabase';
 
 const PasswordResetConfirm: React.FC = () => {
@@ -8,6 +8,8 @@ const PasswordResetConfirm: React.FC = () => {
   const location = useLocation();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -94,13 +96,20 @@ const PasswordResetConfirm: React.FC = () => {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted" size={18} />
                 <input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-3 focus:border-primary outline-none transition-colors"
+                  className="w-full bg-background border border-border rounded-lg pl-10 pr-12 py-3 focus:border-primary outline-none transition-colors"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-textMuted hover:text-textMain transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
             <div>
@@ -109,13 +118,20 @@ const PasswordResetConfirm: React.FC = () => {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted" size={18} />
                 <input
                   id="confirmPassword"
-                  type="password"
+                  type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-3 focus:border-primary outline-none transition-colors"
+                  className="w-full bg-background border border-border rounded-lg pl-10 pr-12 py-3 focus:border-primary outline-none transition-colors"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-textMuted hover:text-textMain transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
             <button

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Server, Key, Cpu, AlertCircle, CheckCircle, Wifi, XCircle, Loader2 } from 'lucide-react';
+import { Save, Server, Key, Cpu, AlertCircle, CheckCircle, Wifi, XCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { validateOpenRouterConfig } from '../api/aiService';
 
 const OPENROUTER_MODELS = [
@@ -14,6 +14,7 @@ const OPENROUTER_MODELS = [
 const Settings: React.FC = () => {
   const [provider, setProvider] = useState('google');
   const [openRouterKey, setOpenRouterKey] = useState('');
+  const [showOpenRouterKey, setShowOpenRouterKey] = useState(false);
   const [openRouterModel, setOpenRouterModel] = useState('anthropic/claude-3.5-sonnet');
   const [saved, setSaved] = useState(false);
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
@@ -121,13 +122,22 @@ const Settings: React.FC = () => {
                            <span className="flex items-center gap-2"><Key size={14} /> OpenRouter API Key</span>
                         </label>
                         <div className="flex gap-2">
-                           <input 
-                              type="password" 
-                              value={openRouterKey}
-                              onChange={(e) => setOpenRouterKey(e.target.value)}
-                              placeholder="sk-or-..."
-                              className="flex-1 bg-background border border-border rounded-lg p-3 focus:border-secondary outline-none font-mono text-sm"
-                           />
+                           <div className="relative flex-1">
+                              <input 
+                                 type={showOpenRouterKey ? "text" : "password"} 
+                                 value={openRouterKey}
+                                 onChange={(e) => setOpenRouterKey(e.target.value)}
+                                 placeholder="sk-or-..."
+                                 className="w-full bg-background border border-border rounded-lg p-3 pr-10 focus:border-secondary outline-none font-mono text-sm"
+                              />
+                              <button
+                                 type="button"
+                                 onClick={() => setShowOpenRouterKey(!showOpenRouterKey)}
+                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-textMuted hover:text-textMain transition-colors"
+                              >
+                                 {showOpenRouterKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                              </button>
+                           </div>
                            <button 
                               onClick={handleTestConnection}
                               disabled={!openRouterKey || testStatus === 'testing'}

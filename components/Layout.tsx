@@ -27,11 +27,8 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, showToast }) 
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
 
-  // Mock Notifications
-  const notifications = [
-    { id: 1, title: 'Project Generated', message: 'Fitness App documentation is ready.', type: 'success', time: '5m ago' },
-    { id: 2, title: 'Welcome!', message: 'Thanks for joining Systematic Funnels.', type: 'info', time: '1h ago' },
-  ];
+  // Notifications state (start empty for first-time user)
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   return (
     <div className="min-h-screen bg-background text-textMain flex flex-col md:flex-row">
@@ -184,7 +181,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, showToast }) 
                   className="relative p-2 hover:bg-surfaceHover rounded-full text-textMuted hover:text-textMain transition-colors"
                 >
                   <Bell size={20} />
-                  <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+                  {notifications.length > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>}
                 </button>
 
                 {notificationsOpen && (
@@ -193,21 +190,29 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, showToast }) 
                     <div className="absolute right-0 mt-3 w-80 bg-surface border border-border rounded-xl shadow-xl z-20 animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="p-4 border-b border-border flex justify-between items-center">
                         <h3 className="font-bold text-sm">Notifications</h3>
-                        <span className="text-xs text-primary cursor-pointer hover:underline">Mark all read</span>
+                        {notifications.length > 0 && <span className="text-xs text-primary cursor-pointer hover:underline">Mark all read</span>}
                       </div>
                       <div className="max-h-[300px] overflow-y-auto">
-                        {notifications.map(notif => (
-                          <div key={notif.id} className="p-4 border-b border-border/50 hover:bg-surfaceHover/50 transition-colors last:border-0 flex gap-3">
-                             <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center ${notif.type === 'success' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-blue-500/10 text-blue-500'}`}>
-                                {notif.type === 'success' ? <Check size={14} /> : <Info size={14} />}
-                             </div>
-                             <div>
-                                <p className="text-sm font-medium">{notif.title}</p>
-                                <p className="text-xs text-textMuted mt-1">{notif.message}</p>
-                                <p className="text-[10px] text-textMuted mt-2">{notif.time}</p>
-                             </div>
+                        {notifications.length === 0 ? (
+                          <div className="p-8 text-center text-textMuted text-xs">
+                             No new notifications
                           </div>
-                        ))}
+                        ) : (
+                          notifications.map(notif => (
+                            <div key={notif.id} className="p-4 border-b border-border/50 hover:bg-surfaceHover/50 transition-colors last:border-0 flex gap-3">
+                               <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center ${
+                                  notif.type === 'success' ? 'bg-green-500/10 text-green-400' : 'bg-primary/10 text-primary'
+                               }`}>
+                                  {notif.type === 'success' ? <Check size={14} /> : <Info size={14} />}
+                               </div>
+                               <div>
+                                  <p className="text-sm font-medium">{notif.title}</p>
+                                  <p className="text-xs text-textMuted mt-1">{notif.message}</p>
+                                  <p className="text-[10px] text-textMuted mt-2">{notif.time}</p>
+                               </div>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </div>
                   </>

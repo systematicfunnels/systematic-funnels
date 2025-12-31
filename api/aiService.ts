@@ -3,6 +3,27 @@ import { GoogleGenAI } from "@google/genai";
 import { AIGenerationRequest, DocType } from '../types';
 import { DOC_HIERARCHY } from '../data/hierarchy';
 
+// === TYPES ===
+export interface ExtractedProjectDetails {
+  name?: string;
+  concept?: string;
+  problem?: string;
+  audience?: string;
+  features?: string[];
+  tech?: string[];
+  budget?: string;
+  timeline?: string;
+}
+
+export interface AIResult {
+  success: boolean;
+  content?: string;
+  model?: string;
+  error?: string;
+  docType?: string;
+  data?: ExtractedProjectDetails;
+}
+
 // Configuration Helpers
 const getAIConfig = () => {
   return {
@@ -30,11 +51,11 @@ async function retryWithBackoff<T>(fn: () => Promise<T>, retries = 3, baseDelay 
 }
 
 // Helper for Google GenAI calls
-async function callGoogleGenAI(prompt: string, docType: string) {
-  const apiKey = process.env.API_KEY;
+async function callGoogleGenAI(prompt: string, docType: string): Promise<AIResult> {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
   if (!apiKey) {
-    console.warn("No API Key found in process.env.API_KEY. Using Mock Mode.");
+    console.warn("No API Key found in import.meta.env.VITE_GEMINI_API_KEY. Using Mock Mode.");
     await delay(2000); 
     return {
       success: true,
@@ -113,7 +134,7 @@ async function callGoogleGenAI(prompt: string, docType: string) {
   }
 }
 
-async function callOpenRouter(prompt: string, docType: string, config: any) {
+async function callOpenRouter(prompt: string, docType: string, config: any): Promise<AIResult> {
   if (!config.openRouterKey) return { success: false, error: "Missing OpenRouter Key", docType };
   try {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -211,7 +232,7 @@ Budget: ${req.preferences.budget}
 }
 
 // === REFINEMENT ===
-export async function refineDocument(currentContent: string, instruction: string, docType: string) {
+export async function refineDocument(currentContent: string, instruction: string, docType: string): Promise<AIResult> {
   const config = getAIConfig();
   const prompt = `
     Role: Expert Editor.
@@ -230,8 +251,49 @@ export async function refineDocument(currentContent: string, instruction: string
   return callGoogleGenAI(prompt, docType);
 }
 
+// === PROJECT EXTRACTION ===
+export async function extractProjectDetails(input: string): Promise<AIResult> {
+  const prompt = `
+    Analyze the following project summary or transcript and extract structured project details.
+    
+    Input Text:
+    """
+    ${input}
+    """
+    
+    Return ONLY a JSON object with the following fields:
+    {
+      "name": "Short project name",
+      "concept": "1-2 line overview",
+      "problem": "Main pain point being solved",
+      "audience": "Target audience description",
+      "features": ["Feature 1", "Feature 2", ...],
+      "tech": ["React", "Next.js", "Node.js", etc. - preferred from: React, Next.js, Vue, Node.js, Python/Django, Go, Flutter, React Native, Firebase, AWS, Supabase],
+      "budget": "One of: Bootstrapped (<$5k), Small Budget ($5-25k), Medium Budget ($25-100k), Well Funded (>$100k)",
+      "timeline": "One of: ASAP (1-3 months), Normal (3-6 months), Flexible (6-12 months), Long-term (12+ months)"
+    }
+    
+    If a field is not mentioned, provide a reasonable best guess based on the context.
+  `;
+
+  const result = await callAI(prompt, 'EXTRACTION');
+  
+  if (result.success && result.content) {
+    try {
+      // Clean up markdown if AI included it
+      const cleanJson = result.content.replace(/```json/g, '').replace(/```/g, '').trim();
+      return { success: true, data: JSON.parse(cleanJson) };
+    } catch (e) {
+      console.error("Failed to parse AI extraction JSON:", e, result.content);
+      return { success: false, error: "Failed to parse AI response" };
+    }
+  }
+  
+  return result;
+}
+
 // === CENTRALIZED GENERATOR ===
-export async function generateDocument(docType: DocType, req: AIGenerationRequest) {
+export async function generateDocument(docType: DocType, req: AIGenerationRequest): Promise<AIResult> {
   // Use Generic Builder for all types in the hierarchy
   // This replaces the 35+ individual functions
   const prompt = buildGenericPrompt(docType, req);
@@ -279,7 +341,7 @@ export async function streamDocumentGeneration(
   }
 }
 
-async function callAI(prompt: string, docType: string) {
+async function callAI(prompt: string, docType: string): Promise<AIResult> {
   const config = getAIConfig();
   if (config.provider === 'openrouter' && config.openRouterKey) {
     return callOpenRouter(prompt, docType, config);

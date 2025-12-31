@@ -1,23 +1,27 @@
 import React, { useState } from 'react';
 import { User, CreditCard, Shield, Clock, Zap, Check, Bell, Smartphone, Star, CheckCircle2, Package } from 'lucide-react';
-import { User as UserType } from '../types';
+import { User as UserType, Project } from '../types';
 
 interface ProfileProps {
   user: UserType;
+  projects?: Project[];
   onShowToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
-const Profile: React.FC<ProfileProps> = ({ user, onShowToast }) => {
+const Profile: React.FC<ProfileProps> = ({ user, projects = [], onShowToast }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'billing'>('overview');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
-  const activities = [
-    { action: 'Generated PRD', project: 'Fitness Tracking App', time: '2 hours ago', credits: -15 },
-    { action: 'Created Project', project: 'Fitness Tracking App', time: '2 hours ago', credits: 0 },
-    { action: 'Exported PDF', project: 'SaaS Dashboard', time: '1 day ago', credits: 0 },
-    { action: 'Generated Roadmap', project: 'SaaS Dashboard', time: '1 day ago', credits: -10 },
-    { action: 'Login detected', project: 'System', time: '3 days ago', credits: 0 },
-  ];
+  // Derive activities from projects if any, otherwise empty
+  const activities = projects.flatMap(p => [
+    { action: 'Created Project', project: p.name, time: new Date(p.createdAt).toLocaleDateString(), credits: 0 },
+    ...p.documents.filter(d => d.status === 'completed').map(d => ({
+      action: `Generated ${d.title}`,
+      project: p.name,
+      time: new Date(d.lastUpdated).toLocaleDateString(),
+      credits: -15
+    }))
+  ]).sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 5);
 
   const plans = [
     {
@@ -172,7 +176,7 @@ const Profile: React.FC<ProfileProps> = ({ user, onShowToast }) => {
                        </div>
                     </div>
                     <p className="text-xs text-textMuted mt-3">
-                       Credits reset on <span className="text-textMain font-medium">Nov 1, 2024</span>. Upgrade to Pro for unlimited credits.
+                       Credits reset on the <span className="text-textMain font-medium">1st of next month</span>. Upgrade to Pro for unlimited credits.
                     </p>
                  </div>
               </div>
@@ -183,30 +187,36 @@ const Profile: React.FC<ProfileProps> = ({ user, onShowToast }) => {
                     <h3 className="font-bold flex items-center gap-2">
                        <Clock size={20} className="text-textMuted" /> Recent Activity
                     </h3>
-                    <button className="text-xs text-primary hover:underline">View All</button>
+                    {activities.length > 0 && <button className="text-xs text-primary hover:underline">View All</button>}
                  </div>
                  <div>
-                    {activities.map((activity, i) => (
-                       <div key={i} className="flex items-center justify-between p-4 border-b border-border/50 hover:bg-surfaceHover/40 transition-colors last:border-0 group">
-                          <div className="flex items-center gap-3">
-                             <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                                activity.credits < 0 ? 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white' : 'bg-secondary/10 text-secondary group-hover:bg-secondary group-hover:text-white'
-                             }`}>
-                                {activity.credits < 0 ? <Zap size={14} /> : <Check size={14} />}
-                             </div>
-                             <div>
-                                <p className="text-sm font-medium group-hover:text-primary transition-colors">{activity.action}</p>
-                                <p className="text-xs text-textMuted">{activity.project}</p>
-                             </div>
-                          </div>
-                          <div className="text-right">
-                             <p className="text-xs text-textMuted">{activity.time}</p>
-                             {activity.credits !== 0 && (
-                                <p className="text-xs font-bold text-primary">{activity.credits} credits</p>
-                             )}
-                          </div>
+                    {activities.length === 0 ? (
+                       <div className="p-10 text-center text-textMuted text-sm">
+                          No recent activity to show.
                        </div>
-                    ))}
+                    ) : (
+                       activities.map((activity, i) => (
+                          <div key={i} className="flex items-center justify-between p-4 border-b border-border/50 hover:bg-surfaceHover/40 transition-colors last:border-0 group">
+                             <div className="flex items-center gap-3">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                                   activity.credits < 0 ? 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white' : 'bg-secondary/10 text-secondary group-hover:bg-secondary group-hover:text-white'
+                                }`}>
+                                   {activity.credits < 0 ? <Zap size={14} /> : <Check size={14} />}
+                                </div>
+                                <div>
+                                   <p className="text-sm font-medium group-hover:text-primary transition-colors">{activity.action}</p>
+                                   <p className="text-xs text-textMuted">{activity.project}</p>
+                                </div>
+                             </div>
+                             <div className="text-right">
+                                <p className="text-xs text-textMuted">{activity.time}</p>
+                                {activity.credits !== 0 && (
+                                   <p className="text-xs font-bold text-primary">{activity.credits} credits</p>
+                                )}
+                             </div>
+                          </div>
+                       ))
+                    )}
                  </div>
               </div>
            </div>
