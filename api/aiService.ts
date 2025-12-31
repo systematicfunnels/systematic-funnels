@@ -55,8 +55,34 @@ async function callGoogleGenAI(prompt: string, docType: string): Promise<AIResul
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
   if (!apiKey) {
-    console.warn("No API Key found in import.meta.env.VITE_GEMINI_API_KEY. Using Mock Mode.");
-    await delay(2000); 
+    console.warn(`No API Key found in VITE_GEMINI_API_KEY. Using Mock Mode for ${docType}.`);
+    await delay(1000); 
+
+    if (docType === 'EXTRACTION') {
+      return {
+        success: true,
+        content: JSON.stringify({
+          name: "Mock Project",
+          concept: "A revolutionary AI platform for developers.",
+          problem: "Developing AI is hard and time-consuming.",
+          audience: "Developers and Startups",
+          features: ["AI Code Generation", "Automated Testing", "Smart Deployments"],
+          tech: ["React", "Node.js", "Supabase"],
+          budget: "Small ($5-25k)",
+          timeline: "Normal (3-6m)"
+        }),
+        model: 'mock-model'
+      };
+    }
+
+    if (docType === 'BRAINSTORM') {
+      return {
+        success: true,
+        content: JSON.stringify(["Feature A", "Feature B", "Feature C", "Feature D", "Feature E"]),
+        model: 'mock-model'
+      };
+    }
+
     return {
       success: true,
       content: `## Mock Generated ${docType.toUpperCase()}\n\nThis is a simulated response.\n\n## 1. Content\nMock content for ${docType}.`,
@@ -116,7 +142,20 @@ async function callGoogleGenAI(prompt: string, docType: string): Promise<AIResul
     return { success: true, content: content, model: modelName };
   } catch (error: any) {
     console.error(`Error generating ${docType} via Gemini:`, error);
-    if (error.message?.includes('429') || error.status === 429 || error.status === 'RESOURCE_EXHAUSTED') {
+    
+    const errorMsg = error.message || "";
+    const isLeaked = errorMsg.includes('leaked') || error.status === 403;
+    const isRateLimit = errorMsg.includes('429') || error.status === 429 || error.status === 'RESOURCE_EXHAUSTED';
+
+    if (isLeaked) {
+      return {
+        success: false,
+        error: "CRITICAL: Your Gemini API Key has been reported as leaked. For security, Google has disabled it. Please generate a new key at https://aistudio.google.com/app/apikey and update your VITE_GEMINI_API_KEY in .env.local",
+        docType
+      };
+    }
+
+    if (isRateLimit) {
        const openRouterKey = localStorage.getItem('sf_openrouter_key');
        if (openRouterKey) {
           return callOpenRouter(prompt, docType, {
@@ -126,7 +165,7 @@ async function callGoogleGenAI(prompt: string, docType: string): Promise<AIResul
        }
        return {
          success: true,
-         content: `## ⚠️ Rate Limit\n\nAI provider busy. Please try again later or configure OpenRouter backup.\n\n## Placeholder for ${docType}\n- Section 1\n- Section 2`,
+         content: `## ⚠️ Rate Limit\n\nAI provider busy. Please try again later or configure OpenRouter backup in settings.\n\n## Placeholder for ${docType}\n- Section 1\n- Section 2`,
          model: 'fallback-mode'
        };
     }
@@ -268,9 +307,9 @@ export async function extractProjectDetails(input: string): Promise<AIResult> {
       "problem": "Main pain point being solved",
       "audience": "Target audience description",
       "features": ["Feature 1", "Feature 2", ...],
-      "tech": ["React", "Next.js", "Node.js", etc. - preferred from: React, Next.js, Vue, Node.js, Python/Django, Go, Flutter, React Native, Firebase, AWS, Supabase],
-      "budget": "One of: Bootstrapped (<$5k), Small Budget ($5-25k), Medium Budget ($25-100k), Well Funded (>$100k)",
-      "timeline": "One of: ASAP (1-3 months), Normal (3-6 months), Flexible (6-12 months), Long-term (12+ months)"
+      "tech": ["React", "Next.js", "Node.js", etc. - preferred from: React, Next.js, Vue, Node.js, Python, Go, Flutter, RN, Firebase, AWS, Supabase, PostgreSQL],
+      "budget": "One of: Bootstrapped (<$5k), Small ($5-25k), Medium ($25-100k), Enterprise (>$100k)",
+      "timeline": "One of: ASAP (1-3m), Normal (3-6m), Flexible (6-12m), Long (12m+)"
     }
     
     If a field is not mentioned, provide a reasonable best guess based on the context.

@@ -59,7 +59,7 @@
    ```env
    VITE_SUPABASE_URL=your_supabase_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   GEMINI_API_KEY=your_gemini_api_key
+   VITE_GEMINI_API_KEY=your_gemini_api_key
    ```
 
 4. **Run the development server:**
