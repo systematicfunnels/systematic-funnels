@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, CreditCard, Shield, Clock, Zap, Check, Bell, Smartphone, Star, CheckCircle2, Package } from 'lucide-react';
+import { User, CreditCard, Shield, Clock, Zap, Check, Bell, Smartphone, Star, CheckCircle2, Package, Sparkles } from 'lucide-react';
 import { User as UserType, Project } from '../types';
 
 interface ProfileProps {
@@ -9,7 +9,7 @@ interface ProfileProps {
 }
 
 const Profile: React.FC<ProfileProps> = ({ user, projects = [], onShowToast }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'billing'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview'>('overview');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
   // Derive activities from projects if any, otherwise empty
@@ -63,12 +63,12 @@ const Profile: React.FC<ProfileProps> = ({ user, projects = [], onShowToast }) =
               Account & Settings
            </h1>
            <p className="text-textMuted mt-2">
-              Manage your personal profile, security preferences, and subscription plan.
+              Manage your personal profile and security preferences.
            </p>
         </div>
         
-        {/* Tab Switcher */}
-        <div className="flex bg-surface border border-border rounded-lg p-1">
+        {/* Tab Switcher hidden for beta */}
+        <div className="hidden flex bg-surface border border-border rounded-lg p-1">
           <button 
             onClick={() => setActiveTab('overview')}
             className={`px-6 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
@@ -109,10 +109,21 @@ const Profile: React.FC<ProfileProps> = ({ user, projects = [], onShowToast }) =
                     </div>
                     
                     <div className="mt-6 pt-6 border-t border-border flex flex-col gap-2">
-                       <button className="w-full py-2 bg-surfaceHover rounded-lg text-sm font-medium hover:text-white transition-colors hover:bg-surfaceHover/80">
+                       <button 
+                         onClick={() => onShowToast?.('Profile editing coming soon!', 'info')}
+                         className="w-full py-2 bg-surfaceHover rounded-lg text-sm font-medium hover:text-white transition-colors hover:bg-surfaceHover/80"
+                       >
                           Edit Profile
                        </button>
-                       <button className="w-full py-2 bg-transparent border border-transparent hover:border-red-900/30 rounded-lg text-sm font-medium text-red-400 hover:bg-red-900/10 transition-colors">
+                       <button 
+                         onClick={() => {
+                           if (window.confirm('Are you sure you want to sign out?')) {
+                             // Assuming we might have a global logout, but for now just use the prop if available or window.location
+                             window.location.href = '/login';
+                           }
+                         }}
+                         className="w-full py-2 bg-transparent border border-transparent hover:border-red-900/30 rounded-lg text-sm font-medium text-red-400 hover:bg-red-900/10 transition-colors"
+                       >
                           Sign Out
                        </button>
                     </div>
@@ -124,11 +135,11 @@ const Profile: React.FC<ProfileProps> = ({ user, projects = [], onShowToast }) =
                     <Shield size={18} className="text-secondary" /> Security
                  </h3>
                  <div className="space-y-4">
-                    <div className="flex items-center justify-between text-sm group cursor-pointer">
+                    <div className="flex items-center justify-between text-sm group cursor-pointer" onClick={() => onShowToast?.('Password reset email sent (simulation)', 'success')}>
                        <span className="text-textMuted group-hover:text-textMain transition-colors">Password</span>
                        <button className="text-primary hover:underline">Change</button>
                     </div>
-                    <div className="flex items-center justify-between text-sm group cursor-pointer">
+                    <div className="flex items-center justify-between text-sm group cursor-pointer" onClick={() => onShowToast?.('2FA setup coming soon!', 'info')}>
                        <span className="text-textMuted group-hover:text-textMain transition-colors">2FA Authentication</span>
                        <span className="text-textMuted bg-surfaceHover px-2 py-0.5 rounded text-xs">Disabled</span>
                     </div>
@@ -138,46 +149,19 @@ const Profile: React.FC<ProfileProps> = ({ user, projects = [], onShowToast }) =
 
            {/* Right Column: Details & Usage */}
            <div className="md:col-span-2 space-y-6">
-              {/* Usage Stats */}
+              {/* Beta Usage Note */}
               <div className="bg-surface border border-border rounded-xl p-6 relative overflow-hidden">
                  <div className="absolute top-0 right-0 p-4 opacity-10">
                     <Zap size={100} />
                  </div>
-                 <h3 className="font-bold mb-6 flex items-center gap-2 relative z-10">
-                    <Zap size={20} className="text-yellow-400" /> Usage & Credits
+                 <h3 className="font-bold mb-4 flex items-center gap-2 relative z-10">
+                    <Zap size={20} className="text-yellow-400" /> Beta Usage
                  </h3>
-                 
-                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 relative z-10">
-                    <div className="bg-background/50 backdrop-blur p-4 rounded-xl border border-border hover:border-primary/30 transition-colors">
-                       <p className="text-xs text-textMuted mb-1 font-medium uppercase tracking-wider">Total Credits</p>
-                       <p className="text-2xl font-bold text-white">1,000</p>
-                    </div>
-                    <div className="bg-background/50 backdrop-blur p-4 rounded-xl border border-border hover:border-primary/30 transition-colors">
-                       <p className="text-xs text-textMuted mb-1 font-medium uppercase tracking-wider">Used</p>
-                       <p className="text-2xl font-bold text-primary">{user.apiCredits}</p>
-                    </div>
-                    <div className="bg-background/50 backdrop-blur p-4 rounded-xl border border-border hover:border-primary/30 transition-colors">
-                       <p className="text-xs text-textMuted mb-1 font-medium uppercase tracking-wider">Remaining</p>
-                       <p className="text-2xl font-bold text-secondary">{1000 - user.apiCredits}</p>
-                    </div>
-                 </div>
-
-                 <div className="relative z-10">
-                    <div className="flex justify-between text-sm mb-2">
-                       <span className="font-medium">Monthly Quota</span>
-                       <span className="text-textMuted">{Math.round((user.apiCredits / 1000) * 100)}% Used</span>
-                    </div>
-                    <div className="w-full bg-surfaceHover rounded-full h-2.5 overflow-hidden">
-                       <div 
-                          className="bg-gradient-to-r from-primary to-secondary h-full rounded-full transition-all duration-1000 ease-out relative" 
-                          style={{ width: `${(user.apiCredits / 1000) * 100}%` }}
-                       >
-                          <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
-                       </div>
-                    </div>
-                    <p className="text-xs text-textMuted mt-3">
-                       Credits reset on the <span className="text-textMain font-medium">1st of next month</span>. Upgrade to Pro for unlimited credits.
-                    </p>
+                 <p className="text-textMuted text-sm mb-4 relative z-10">
+                    Systematic Funnels is currently in <strong>Open Beta</strong>. All features are free to use while we refine the platform.
+                 </p>
+                 <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/10 text-secondary text-xs font-bold border border-secondary/20 relative z-10">
+                    <Sparkles size={14} fill="currentColor" /> Unlimited Generations During Beta
                  </div>
               </div>
 
@@ -196,7 +180,11 @@ const Profile: React.FC<ProfileProps> = ({ user, projects = [], onShowToast }) =
                        </div>
                     ) : (
                        activities.map((activity, i) => (
-                          <div key={i} className="flex items-center justify-between p-4 border-b border-border/50 hover:bg-surfaceHover/40 transition-colors last:border-0 group">
+                          <div 
+                            key={i} 
+                            onClick={() => onShowToast?.(`Viewing activity: ${activity.action}`, 'info')}
+                            className="flex items-center justify-between p-4 border-b border-border/50 hover:bg-surfaceHover/40 transition-colors last:border-0 group cursor-pointer"
+                          >
                              <div className="flex items-center gap-3">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
                                    activity.credits < 0 ? 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white' : 'bg-secondary/10 text-secondary group-hover:bg-secondary group-hover:text-white'

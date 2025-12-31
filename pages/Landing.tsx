@@ -63,9 +63,9 @@ const Landing: React.FC = () => {
             </Link>
             <Link 
               to="/login"
-              className="w-full sm:w-auto px-8 py-4 rounded-full bg-white/5 border border-white/10 text-white font-bold text-lg hover:bg-white/10 transition-all backdrop-blur-sm"
+              className="w-full sm:w-auto px-8 py-4 rounded-full bg-white/5 border border-white/10 text-white font-bold text-lg hover:bg-white/10 transition-all backdrop-blur-sm flex items-center justify-center gap-2"
             >
-              View Demo
+              <Rocket size={20} className="text-primary" /> View Demo
             </Link>
           </div>
 
@@ -203,9 +203,9 @@ const Landing: React.FC = () => {
                      to="/signup"
                      className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-white text-black font-bold text-lg hover:bg-gray-100 transition-all hover:scale-105"
                   >
-                     Start Building for Free <Zap size={20} fill="currentColor" />
+                     Get Early Beta Access <Zap size={20} fill="currentColor" />
                   </Link>
-                  <p className="mt-4 text-sm text-textMuted">No credit card required • Free tier included</p>
+                  <p className="mt-4 text-sm text-textMuted">Free to use while in Open Beta</p>
                </div>
             </div>
          </div>
@@ -224,9 +224,9 @@ const Landing: React.FC = () => {
                © 2024 Systematic Funnels Inc. All rights reserved.
             </div>
             <div className="flex gap-6 text-sm text-textMuted">
-               <a href="#" className="hover:text-white transition-colors">Privacy</a>
-               <a href="#" className="hover:text-white transition-colors">Terms</a>
-               <a href="#" className="hover:text-white transition-colors">Twitter</a>
+               <Link to="/login" className="hover:text-white transition-colors">Privacy</Link>
+               <Link to="/login" className="hover:text-white transition-colors">Terms</Link>
+               <a href="https://twitter.com/systematicfunnels" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Twitter</a>
             </div>
          </div>
       </footer>

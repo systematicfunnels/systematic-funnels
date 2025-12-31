@@ -68,7 +68,12 @@ const Templates: React.FC<TemplatesProps> = ({ onUseTemplate }) => {
          <p className="text-textMuted text-sm mb-4">
             We are adding new templates weekly. Contact us if you have a specific request.
          </p>
-         <button className="text-sm text-primary hover:underline">Request Template</button>
+         <button 
+           onClick={() => window.open('mailto:hello@systematicfunnels.com?subject=Template Request', '_blank')}
+           className="text-sm text-primary hover:underline"
+         >
+           Request Template
+         </button>
       </div>
     </div>
   );

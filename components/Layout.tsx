@@ -18,7 +18,16 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, showToast }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      // For now, we'll just show a toast or log it, but eventually navigate to projects with filter
+      showToast?.(`Searching for: ${searchQuery}`, 'info');
+    }
+  };
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -101,31 +110,14 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, showToast }) 
             ))}
           </nav>
 
-          {/* Usage Stats & Pro Upgrade */}
+          {/* Beta Note */}
           <div className="p-6 border-t border-border space-y-5">
-            {/* Pro Callout */}
-            <div className="bg-gradient-to-br from-primary/20 to-secondary/10 border border-primary/20 rounded-xl p-4">
+            <div className="bg-gradient-to-br from-secondary/20 to-primary/10 border border-secondary/20 rounded-xl p-4">
                <div className="flex items-center gap-2 text-white font-bold mb-1">
-                  <Sparkles size={16} className="text-yellow-400" fill="currentColor" />
-                  <span className="text-sm">Upgrade to Pro</span>
+                  <Sparkles size={16} className="text-secondary" fill="currentColor" />
+                  <span className="text-sm">Beta Version</span>
                </div>
-               <p className="text-xs text-textMuted mb-3">Get unlimited generations and team collaboration.</p>
-               <Link 
-                  to="/profile"
-                  className="block w-full text-center bg-surface hover:bg-white text-textMain hover:text-black text-xs font-bold py-2 rounded border border-border transition-all"
-               >
-                  View Plans
-               </Link>
-            </div>
-
-            <div>
-              <div className="flex justify-between text-xs text-textMuted mb-2">
-                <span>API Credits</span>
-                <span>{user.apiCredits}/1000</span>
-              </div>
-              <div className="w-full bg-surfaceHover rounded-full h-1.5">
-                <div className="bg-secondary h-1.5 rounded-full" style={{ width: `${(user.apiCredits / 1000) * 100}%` }}></div>
-              </div>
+               <p className="text-xs text-textMuted leading-relaxed">Enjoy full access to all features for free while we are in beta.</p>
             </div>
           </div>
 
@@ -165,14 +157,16 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, showToast }) 
               <span className="text-textMain font-medium capitalize">{location.pathname.replace('/', '') || 'Dashboard'}</span>
            </div>
            <div className="flex items-center gap-4">
-              <div className="relative">
+              <form onSubmit={handleSearch} className="relative">
                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted" size={18} />
                  <input 
                     type="text" 
                     placeholder="Search projects..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     className="bg-surface border border-border rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-primary w-64 transition-all"
                  />
-              </div>
+              </form>
               
               {/* Notifications */}
               <div className="relative">
@@ -219,7 +213,10 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, showToast }) 
                 )}
               </div>
 
-              <button className="p-2 hover:bg-surfaceHover rounded-full text-textMuted hover:text-textMain transition-colors">
+              <button 
+                onClick={() => showToast?.('Help & Documentation center coming soon!', 'info')}
+                className="p-2 hover:bg-surfaceHover rounded-full text-textMuted hover:text-textMain transition-colors"
+              >
                  <HelpCircle size={20} />
               </button>
            </div>

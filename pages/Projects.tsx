@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Filter, FolderOpen } from 'lucide-react';
 import { Project } from '../types';
@@ -9,6 +9,14 @@ interface ProjectsProps {
 
 const Projects: React.FC<ProjectsProps> = ({ projects }) => {
   const navigate = useNavigate();
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilter, setShowFilter] = useState(false);
+
+  const filteredProjects = projects.filter(p => 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    p.concept.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -23,17 +31,22 @@ const Projects: React.FC<ProjectsProps> = ({ projects }) => {
             <input 
               type="text" 
               placeholder="Filter projects..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-surface border border-border rounded-lg pl-9 pr-4 py-2 text-sm focus:border-primary outline-none"
             />
           </div>
-          <button className="p-2 border border-border rounded-lg hover:bg-surfaceHover">
-            <Filter size={20} className="text-textMuted" />
+          <button 
+            onClick={() => setShowFilter(!showFilter)}
+            className={`p-2 border rounded-lg transition-colors ${showFilter ? 'bg-primary/10 border-primary text-primary' : 'border-border hover:bg-surfaceHover text-textMuted'}`}
+          >
+            <Filter size={20} />
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {projects.map(project => (
+        {filteredProjects.map(project => (
            <div 
              key={project.id}
              onClick={() => navigate(`/project/${project.id}`)}
@@ -59,9 +72,9 @@ const Projects: React.FC<ProjectsProps> = ({ projects }) => {
              </div>
            </div>
         ))}
-        {projects.length === 0 && (
+        {filteredProjects.length === 0 && (
           <div className="col-span-full py-20 text-center text-textMuted">
-            No projects found.
+            {searchQuery ? 'No projects match your search.' : 'No projects found.'}
           </div>
         )}
       </div>

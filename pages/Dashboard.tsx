@@ -20,8 +20,11 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, user, onCreateProject }
   const totalDocs = projects.reduce((acc, p) => acc + p.documents.filter(d => d.status === 'completed').length, 0);
   const hoursSaved = totalDocs * 2; // Heuristic: 2 hours per document
 
-  const StatCard = ({ title, value, sub, icon: Icon, trend }: any) => (
-    <div className="bg-surface border border-border p-5 rounded-xl hover:border-primary/30 transition-colors cursor-pointer group">
+  const StatCard = ({ title, value, sub, icon: Icon, trend, onClick }: any) => (
+    <div 
+      onClick={onClick}
+      className="bg-surface border border-border p-5 rounded-xl hover:border-primary/30 transition-colors cursor-pointer group"
+    >
       <div className="flex justify-between items-start mb-4">
         <div className="p-2 bg-primary/10 rounded-lg text-primary group-hover:bg-primary group-hover:text-white transition-colors">
           <Icon size={20} />
@@ -44,9 +47,12 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, user, onCreateProject }
       {/* Welcome Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-            Transform Ideas into Products 🚀
-          </h1>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+              Transform Ideas into Products 🚀
+            </h1>
+            <span className="text-[10px] font-bold text-secondary uppercase tracking-widest bg-secondary/10 px-1.5 py-0.5 rounded border border-secondary/20">Beta</span>
+          </div>
           <p className="text-textMuted mt-1">
              Generate investor-ready documentation and technical specs in minutes.
           </p>
@@ -61,11 +67,10 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, user, onCreateProject }
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Active Projects" value={projects.length} sub={`${projects.filter(p => p.status === 'completed').length} completed`} icon={FolderOpen} />
-        <StatCard title="Documents Generated" value={totalDocs} sub="Across all projects" icon={FileText} />
-        <StatCard title="API Credits" value={1000 - user.apiCredits} sub="Remaining from 1,000" icon={Activity} />
-        <StatCard title="Hours Saved" value={`${hoursSaved}h`} sub="Compared to manual" icon={Clock} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <StatCard title="Active Projects" value={projects.length} sub={`${projects.filter(p => p.status === 'completed').length} completed`} icon={FolderOpen} onClick={() => navigate('/projects')} />
+        <StatCard title="Documents Generated" value={totalDocs} sub="Across all projects" icon={FileText} onClick={() => navigate('/projects')} />
+        <StatCard title="Hours Saved" value={`${hoursSaved}h`} sub="Compared to manual" icon={Clock} onClick={() => navigate('/projects')} />
       </div>
 
       {/* Recent Projects */}
