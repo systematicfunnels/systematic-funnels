@@ -38,7 +38,6 @@ const Wizard: React.FC<WizardProps> = ({ onClose, onSubmit, initialData }) => {
   const [aiInput, setAiInput] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
   const [isBrainstorming, setIsBrainstorming] = useState(false);
-  const [fillSuccess, setFillSuccess] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     problem: '',
@@ -98,7 +97,6 @@ const Wizard: React.FC<WizardProps> = ({ onClose, onSubmit, initialData }) => {
   const handleMagicFill = async () => {
     if (!aiInput.trim()) return;
     setIsExtracting(true);
-    setFillSuccess(false);
     try {
       const result = await extractProjectDetails(aiInput);
       if (result.success && result.data) {
@@ -114,11 +112,7 @@ const Wizard: React.FC<WizardProps> = ({ onClose, onSubmit, initialData }) => {
           budget: data.budget || prev.budget,
           timeline: data.timeline || prev.timeline
         }));
-        setFillSuccess(true);
-        setTimeout(() => {
-          setMode('manual');
-          setFillSuccess(false);
-        }, 1500);
+        setMode('manual');
       } else {
         alert(result.error || "Failed to extract details. Please try again or use manual mode.");
       }
@@ -210,20 +204,12 @@ const Wizard: React.FC<WizardProps> = ({ onClose, onSubmit, initialData }) => {
           />
           <button 
             onClick={handleMagicFill}
-            disabled={isExtracting || !aiInput.trim() || fillSuccess}
-            className={`w-full flex items-center justify-center gap-2 font-bold py-2.5 rounded-xl transition-all shadow-lg text-sm ${
-              fillSuccess 
-              ? 'bg-green-500 text-white shadow-green-500/20' 
-              : 'bg-primary hover:bg-primaryHover text-white shadow-primary/20'
-            } disabled:opacity-50`}
+            disabled={isExtracting || !aiInput.trim()}
+            className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primaryHover text-white font-bold py-2.5 rounded-xl transition-all shadow-lg shadow-primary/20 text-sm disabled:opacity-50"
           >
             {isExtracting ? (
               <>
                 <Loader2 className="animate-spin" size={16} /> Extracting...
-              </>
-            ) : fillSuccess ? (
-              <>
-                <Check size={16} /> Details Extracted!
               </>
             ) : (
               <>

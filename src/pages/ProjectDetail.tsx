@@ -117,60 +117,37 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projects, onRegenerateDoc
   );
 
   const renderRoadmap = () => (
-    <div className="bg-surface/50 border-b border-border px-8 py-4 overflow-x-auto scrollbar-hide no-print">
-      <div className="flex items-center gap-0 min-w-max max-w-5xl mx-auto">
+    <div className="bg-surface border-b border-border px-8 py-4 overflow-x-auto no-print">
+      <div className="flex items-center gap-4 min-w-max">
         {HIERARCHY_GROUPS.map((group, idx) => {
           const docs = groupedDocs[group];
           const completedCount = docs.filter(d => d.status === 'completed').length;
           const totalCount = docs.length;
           const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
           const isActive = idx === currentPhaseIndex || (currentPhaseIndex === -1 && idx === 0);
-          const isCompleted = progress === 100;
           const color = getPhaseColor(group);
 
           return (
-            <React.Fragment key={group}>
-              {/* Phase Node */}
-              <div className="flex flex-col items-center group relative">
-                <div className={`
-                  w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500 z-10
-                  ${isCompleted ? 'bg-emerald-500/10 border-emerald-500 text-emerald-500' : 
-                    isActive ? `bg-${color}-500/20 border-${color}-500 text-${color}-400 shadow-[0_0_15px_rgba(var(--color-primary),0.2)]` : 
-                    'bg-background border-border text-textMuted'}
-                `}>
-                  {isCompleted ? <CheckCircle2 size={18} /> : <span className="text-xs font-bold">{idx + 1}</span>}
-                </div>
-                
-                <div className="absolute top-12 flex flex-col items-center w-32 text-center pointer-events-none">
-                  <span className={`text-[10px] font-bold uppercase tracking-tighter mb-0.5 ${isActive ? `text-${color}-400` : 'text-textMuted'}`}>
-                    Phase {idx + 1}
-                  </span>
-                  <span className={`text-[9px] font-medium leading-tight line-clamp-2 ${isActive ? 'text-textMain' : 'text-textMuted'}`}>
-                    {group.split('. ')[1]}
-                  </span>
-                </div>
-
-                {/* Hover Tooltip */}
-                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-surfaceHover border border-border px-2 py-1 rounded text-[9px] font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20">
-                  {Math.round(progress)}% Complete
-                </div>
+            <div key={group} className="flex flex-col gap-2 min-w-[150px]">
+              <div className="flex justify-between items-center">
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${isActive ? `text-${color}-400` : 'text-textMuted'}`}>
+                  Phase {idx + 1}
+                </span>
+                <span className="text-[10px] text-textMuted">{Math.round(progress)}%</span>
               </div>
-
-              {/* Connector Line */}
-              {idx < HIERARCHY_GROUPS.length - 1 && (
-                <div className="flex-1 min-w-[40px] h-[2px] mx-[-1px] relative self-center translate-y-[-10px]">
-                  <div className="absolute inset-0 bg-border" />
-                  <div 
-                    className={`absolute inset-0 transition-all duration-1000 ${isCompleted ? 'bg-emerald-500' : isActive ? `bg-${color}-500/50` : ''}`}
-                    style={{ width: `${isCompleted ? 100 : isActive ? progress : 0}%` }}
-                  />
-                </div>
-              )}
-            </React.Fragment>
+              <div className="h-1.5 w-full bg-background rounded-full overflow-hidden border border-border/50">
+                <div 
+                  className={`h-full bg-${color}-500 transition-all duration-1000`} 
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <span className={`text-[11px] font-medium truncate ${isActive ? 'text-textMain' : 'text-textMuted'}`}>
+                {group.split('. ')[1]}
+              </span>
+            </div>
           );
         })}
       </div>
-      <div className="h-10" /> {/* Spacer for labels */}
     </div>
   );
 

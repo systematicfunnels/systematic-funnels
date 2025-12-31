@@ -146,9 +146,9 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, user, onCreateProject }
 
                       <div className="flex items-center justify-between pt-4 border-t border-border/50">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
-                          project.status === 'completed' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
-                          project.status === 'in_progress' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
-                          'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+                          project.status === 'completed' ? 'bg-emerald-500/10 text-emerald-400' :
+                          project.status === 'in_progress' ? 'bg-blue-500/10 text-blue-400' :
+                          'bg-gray-500/10 text-gray-400'
                         }`}>
                           {project.status.replace('_', ' ')}
                         </span>

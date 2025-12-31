@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { 
-  LayoutDashboard, FolderKanban, FileText, Settings, 
-  Menu, Bell, Search, LogOut, X, Plus, HelpCircle,
-  CreditCard, User, Sparkles, Check, Info
+  Menu, Bell, Search, X, Check, Info, HelpCircle, FileText
 } from 'lucide-react';
 
 import { User as AppUser } from '../types';
+import Sidebar from './Sidebar';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -17,6 +16,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, showToast }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
@@ -28,13 +28,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, showToast }) 
       showToast?.(`Searching for: ${searchQuery}`, 'info');
     }
   };
-
-  const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-    { icon: FolderKanban, label: 'Projects', path: '/projects' },
-    { icon: FileText, label: 'Templates', path: '/templates' },
-    { icon: Settings, label: 'Settings', path: '/settings' },
-  ];
 
   // Notifications state (start empty for first-time user)
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -59,93 +52,14 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, showToast }) 
         </div>
       </div>
 
-      {/* Sidebar */}
-      <aside className={`
-        fixed inset-y-0 left-0 z-50 w-72 bg-surface border-r border-border transform transition-transform duration-300 ease-in-out
-        md:relative md:translate-x-0
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-      `}>
-        <div className="h-full flex flex-col">
-          {/* Sidebar Header */}
-          <div className="hidden md:flex items-center gap-3 p-6 border-b border-border">
-            <div className="w-8 h-8 rounded bg-gradient-to-br from-primary to-secondary flex items-center justify-center shrink-0">
-               <FileText className="text-white" size={18} />
-            </div>
-            <span className="text-lg font-bold tracking-tight">Systematic Funnels</span>
-          </div>
-
-          <div className="p-4 md:hidden flex justify-end">
-            <button onClick={() => setSidebarOpen(false)}>
-              <X className="text-textMuted" />
-            </button>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="p-4">
-            <Link 
-              to="/dashboard"
-              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primaryHover text-white py-3 px-4 rounded-lg font-medium transition-colors shadow-lg shadow-primary/20"
-            >
-              <Plus size={20} />
-              New Project
-            </Link>
-          </div>
-
-          {/* Nav Items */}
-          <nav className="flex-1 px-4 py-2 space-y-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  location.pathname === item.path
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-textMuted hover:bg-surfaceHover hover:text-textMain'
-                }`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <item.icon size={20} />
-                <span className="font-medium">{item.label}</span>
-              </Link>
-            ))}
-          </nav>
-
-          {/* Beta Note */}
-          <div className="p-6 border-t border-border space-y-5">
-            <div className="bg-gradient-to-br from-secondary/20 to-primary/10 border border-secondary/20 rounded-xl p-4">
-               <div className="flex items-center gap-2 text-white font-bold mb-1">
-                  <Sparkles size={16} className="text-secondary" fill="currentColor" />
-                  <span className="text-sm">Beta Version</span>
-               </div>
-               <p className="text-xs text-textMuted leading-relaxed">Enjoy full access to all features for free while we are in beta.</p>
-            </div>
-          </div>
-
-          {/* User Footer */}
-          <div className="p-4 border-t border-border bg-surfaceHover/30">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center text-white font-bold">
-                {user.name?.charAt(0)}
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <p className="text-sm font-medium truncate">{user.name}</p>
-                <p className="text-xs text-textMuted truncate">{user.email}</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-               <Link 
-                 to="/profile"
-                 className="flex-1 flex items-center justify-center gap-2 text-xs bg-surface border border-border hover:bg-surfaceHover py-2 rounded text-textMuted transition-colors"
-               >
-                  <User size={14} /> Profile
-               </Link>
-               <button onClick={onLogout} className="flex-1 flex items-center justify-center gap-2 text-xs bg-surface border border-border hover:bg-red-900/20 hover:text-red-400 py-2 rounded text-textMuted transition-colors">
-                  <LogOut size={14} />
-               </button>
-            </div>
-          </div>
-        </div>
-      </aside>
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        setIsOpen={setSidebarOpen} 
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
+        user={user} 
+        onLogout={onLogout} 
+      />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
