@@ -249,58 +249,66 @@ const DocViewer: React.FC<DocViewerProps> = ({ document, onUpdate, onShowToast }
           .pb-20 { padding-bottom: 0 !important; }
         }
       `}</style>
-      <div className="max-w-4xl mx-auto pb-20 space-y-6">
+      <div className="max-w-4xl mx-auto pb-32 space-y-8">
         
         {/* Document Header */}
-        <div className="mb-8 border-b border-border pb-6 flex items-end justify-between">
-           <div>
-             <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{document.title.replace(/_/g, ' ')}</h1>
-             <p className="text-textMuted flex items-center gap-2 text-sm">
-                <Check size={14} className="text-emerald-400" /> Auto-saved
-                <span className="w-1 h-1 bg-border rounded-full mx-1"></span>
-                {sections.length} Sections
-             </p>
+        <div className="mb-12 border-b border-border pb-8 flex items-center justify-between">
+           <div className="space-y-1">
+             <div className="flex items-center gap-3 text-textMuted text-xs font-bold uppercase tracking-widest mb-1">
+                <span className="bg-primary/20 text-primary px-2 py-0.5 rounded">DOCUMENT</span>
+                <span>•</span>
+                <span>{document.type.replace(/_/g, ' ')}</span>
+             </div>
+             <h1 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight">{document.title.replace(/_/g, ' ')}</h1>
+             <div className="flex items-center gap-4 text-textMuted text-sm pt-1">
+                <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-400" /> Auto-saved</span>
+                <span className="w-1 h-1 bg-border rounded-full"></span>
+                <span className="flex items-center gap-1.5"><RefreshCw size={12} /> {sections.length} sections</span>
+             </div>
            </div>
            
            <div className="relative no-print">
              <button 
                onClick={() => setShowRefineAll(!showRefineAll)}
-               className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/20 transition-all font-bold text-sm"
+               className="flex items-center gap-2 px-5 py-2.5 bg-white text-black rounded-full hover:bg-white/90 transition-all font-bold text-sm shadow-xl shadow-white/5"
              >
                {isRefining === 'all' ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-               Refine All
+               Refine Document
              </button>
 
              {showRefineAll && (
-               <div className="absolute right-0 mt-2 w-72 bg-surface border border-border rounded-xl shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-top-2">
-                 <p className="text-xs font-bold text-textMuted uppercase tracking-wider mb-3">Refine entire document</p>
-                 <div className="grid grid-cols-2 gap-2 mb-4">
+               <div className="absolute right-0 mt-4 w-80 bg-surface border border-border rounded-2xl shadow-2xl p-5 z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                 <div className="flex justify-between items-center mb-4">
+                    <p className="text-xs font-bold text-textMuted uppercase tracking-wider">AI Global Refine</p>
+                    <button onClick={() => setShowRefineAll(false)} className="text-textMuted hover:text-white"><X size={14}/></button>
+                 </div>
+                 
+                 <div className="grid grid-cols-2 gap-2 mb-5">
                    {REFINE_PRESETS.map((preset) => (
                      <button
                        key={preset.label}
                        onClick={() => handleRefineAll(preset.prompt)}
-                       className="p-2 text-left bg-surfaceHover border border-border rounded-lg hover:border-primary/50 transition-all group"
+                       className="p-2.5 text-left bg-surfaceHover border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all group"
                      >
-                       <span className="text-lg mb-1 block">{preset.icon}</span>
-                       <span className="text-[10px] font-bold group-hover:text-primary transition-colors">{preset.label}</span>
+                       <span className="text-xl mb-1 block">{preset.icon}</span>
+                       <span className="text-[11px] font-bold text-textMain group-hover:text-primary transition-colors">{preset.label}</span>
                      </button>
                    ))}
                  </div>
-                 <div className="flex gap-2">
-                   <input 
-                     type="text" 
-                     placeholder="Custom instruction..."
-                     className="flex-1 bg-background border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary"
+
+                 <div className="relative">
+                   <textarea 
+                     placeholder="Global refinement instructions..."
+                     className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm outline-none focus:border-primary min-h-[100px] resize-none"
                      value={refineInstruction}
                      onChange={(e) => setRefineInstruction(e.target.value)}
-                     onKeyDown={(e) => e.key === 'Enter' && handleRefineAll(refineInstruction)}
                    />
                    <button 
                      onClick={() => handleRefineAll(refineInstruction)}
-                     disabled={!refineInstruction.trim()}
-                     className="p-1.5 bg-primary text-white rounded-lg disabled:opacity-50"
+                     disabled={!refineInstruction.trim() || isRefining === 'all'}
+                     className="absolute bottom-3 right-3 p-2 bg-primary text-white rounded-lg disabled:opacity-50 hover:bg-primaryHover transition-colors shadow-lg shadow-primary/20"
                    >
-                     <Send size={14} />
+                     {isRefining === 'all' ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                    </button>
                  </div>
                </div>
@@ -312,69 +320,86 @@ const DocViewer: React.FC<DocViewerProps> = ({ document, onUpdate, onShowToast }
           <div 
              key={section.id} 
              className={`
-               group relative bg-surface/50 border rounded-xl transition-all duration-300
+               group relative bg-surface/30 border rounded-2xl transition-all duration-500
                ${section.isEditing || activeSectionId === section.id 
-                 ? 'border-primary shadow-lg ring-1 ring-primary/20 bg-surface' 
-                 : 'border-border hover:border-primary/50'
+                 ? 'border-primary/40 bg-surface/60 shadow-2xl ring-1 ring-primary/10' 
+                 : 'border-border/50 hover:border-primary/30 hover:bg-surface/40'
                }
              `}
           >
              {/* Section Header / Drag Handle */}
-             <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-gradient-to-b from-primary to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-             
-             {/* Controls Overlay (Visible on Hover/Active) */}
              <div className={`
-                absolute right-4 top-4 flex gap-2 transition-opacity duration-200 z-10
-                ${activeSectionId === section.id || section.isEditing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
+                absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-primary transition-all duration-300
+                ${activeSectionId === section.id || section.isEditing ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-0 group-hover:opacity-50 group-hover:scale-y-50'}
+             `}></div>
+             
+             {/* Controls Overlay */}
+             <div className={`
+                absolute right-4 top-4 flex gap-1.5 transition-all duration-200 z-10
+                ${activeSectionId === section.id || section.isEditing ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0'}
              `}>
                 {!section.isEditing ? (
                   <>
                      <button 
                        onClick={() => {
                           setActiveSectionId(activeSectionId === section.id ? null : section.id);
-                          // Reset instruction if closing
                           if(activeSectionId === section.id) setRefineInstruction('');
                        }}
-                       className="p-2 bg-surfaceHover hover:bg-primary hover:text-white rounded-lg text-textMuted transition-colors shadow-sm"
+                       className={`
+                         p-2 rounded-xl transition-all shadow-sm flex items-center gap-2
+                         ${activeSectionId === section.id 
+                           ? 'bg-primary text-white scale-105' 
+                           : 'bg-surface border border-border text-textMuted hover:border-primary hover:text-primary'
+                         }
+                       `}
                        title="AI Refine"
                      >
                         <Wand2 size={16} />
+                        {activeSectionId === section.id && <span className="text-[10px] font-bold uppercase pr-1">Refining</span>}
                      </button>
                      <button 
-                       onClick={() => setSections(prev => prev.map(s => s.id === section.id ? { ...s, isEditing: true } : s))}
-                       className="p-2 bg-surfaceHover hover:bg-primary hover:text-white rounded-lg text-textMuted transition-colors shadow-sm"
+                       onClick={() => {
+                         setSections(prev => prev.map(s => s.id === section.id ? { ...s, isEditing: true } : s));
+                         setActiveSectionId(null);
+                       }}
+                       className="p-2 bg-surface border border-border hover:border-primary hover:text-primary rounded-xl text-textMuted transition-all shadow-sm"
                        title="Edit Manually"
                      >
                         <Edit3 size={16} />
                      </button>
                   </>
                 ) : (
-                   <div className="flex gap-2">
+                   <div className="flex gap-2 items-center bg-background/50 backdrop-blur-md p-1 rounded-xl border border-border">
                      <button 
                        onClick={() => setSections(prev => prev.map(s => s.id === section.id ? { ...s, isEditing: false } : s))}
-                       className="px-3 py-1.5 bg-surfaceHover hover:bg-red-500/20 text-textMuted hover:text-red-400 rounded-lg text-xs font-bold transition-colors"
+                       className="px-3 py-1.5 text-textMuted hover:text-white rounded-lg text-xs font-bold transition-colors"
                      >
-                        Cancel
+                        Discard
                      </button>
                      <button 
                        onClick={() => handleSaveSection(section.id)}
-                       className="px-3 py-1.5 bg-primary hover:bg-primaryHover text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
+                       className="px-4 py-1.5 bg-primary hover:bg-primaryHover text-white rounded-lg text-xs font-extrabold transition-all flex items-center gap-1.5 shadow-lg shadow-primary/20"
                      >
-                        <Save size={14} /> Done
+                        <Save size={14} /> Save Changes
                      </button>
                    </div>
                 )}
              </div>
 
              {/* Content Area */}
-             <div className="p-6 md:p-8">
+             <div className="p-8 md:p-10">
                 {section.isEditing ? (
-                   <textarea 
-                      className="w-full min-h-[300px] bg-background border border-border rounded-lg p-4 font-mono text-sm leading-relaxed focus:outline-none focus:border-primary resize-y"
-                      value={section.content}
-                      onChange={(e) => handleUpdateSection(section.id, e.target.value)}
-                      autoFocus
-                   />
+                   <div className="space-y-4">
+                      <div className="flex items-center gap-2 text-[10px] font-bold text-primary uppercase tracking-widest mb-2">
+                        <Edit3 size={12} /> Manual Editor
+                      </div>
+                      <textarea 
+                         className="w-full min-h-[400px] bg-background/50 border border-border rounded-xl p-6 font-mono text-sm leading-relaxed focus:outline-none focus:border-primary resize-y shadow-inner transition-all focus:bg-background"
+                         value={section.content}
+                         onChange={(e) => handleUpdateSection(section.id, e.target.value)}
+                         autoFocus
+                      />
+                   </div>
                 ) : (
                    <div className="prose prose-invert prose-purple max-w-none">
                       {renderMarkdown(section.content)}
@@ -382,45 +407,83 @@ const DocViewer: React.FC<DocViewerProps> = ({ document, onUpdate, onShowToast }
                 )}
              </div>
 
-             {/* AI Refine Drawer for Section */}
+             {/* AI Refine Section - Integrated UI */}
              {activeSectionId === section.id && !section.isEditing && (
-                <div className="absolute top-full right-0 mt-2 w-72 bg-surface border border-border rounded-xl shadow-2xl p-4 z-20 animate-in fade-in slide-in-from-top-2">
-                  <p className="text-xs font-bold text-textMuted uppercase tracking-wider mb-3">AI Refine Section</p>
-                  
-                  <div className="grid grid-cols-2 gap-2 mb-4">
-                    {REFINE_PRESETS.map((preset) => (
-                      <button
-                        key={preset.label}
-                        onClick={() => handleRefineSection(section.id, preset.prompt)}
-                        className="p-2 text-left bg-surfaceHover border border-border rounded-lg hover:border-primary/50 transition-all group"
-                      >
-                        <span className="text-lg mb-1 block">{preset.icon}</span>
-                        <span className="text-[10px] font-bold group-hover:text-primary transition-colors">{preset.label}</span>
-                      </button>
-                    ))}
-                  </div>
+                <div className="border-t border-primary/20 bg-primary/5 p-6 rounded-b-2xl animate-in slide-in-from-bottom-2 duration-300">
+                  <div className="max-w-3xl mx-auto space-y-4">
+                    <div className="flex items-center justify-between">
+                       <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-primary rounded-lg text-white">
+                             <Wand2 size={14} />
+                          </div>
+                          <span className="text-xs font-bold text-textMain uppercase tracking-wider">AI Refinement</span>
+                       </div>
+                       <div className="flex gap-1.5">
+                          {REFINE_PRESETS.map((preset) => (
+                             <button
+                                key={preset.label}
+                                onClick={() => handleRefineSection(section.id, preset.prompt)}
+                                className="px-3 py-1 bg-surface border border-border rounded-full hover:border-primary hover:text-primary transition-all text-[10px] font-bold text-textMuted flex items-center gap-1.5"
+                             >
+                                <span>{preset.icon}</span> {preset.label}
+                             </button>
+                          ))}
+                       </div>
+                    </div>
 
-                  <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      placeholder="Ask AI to change something..."
-                      className="flex-1 bg-background border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary"
-                      value={refineInstruction}
-                      onChange={(e) => setRefineInstruction(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleRefineSection(section.id)}
-                    />
-                    <button 
-                      onClick={() => handleRefineSection(section.id)}
-                      disabled={isRefining === section.id || !refineInstruction.trim()}
-                      className="p-1.5 bg-primary text-white rounded-lg disabled:opacity-50"
-                    >
-                      {isRefining === section.id ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                    </button>
+                    <div className="relative group/input">
+                      <input 
+                        type="text" 
+                        placeholder="How should I improve this section? (e.g., 'make it more technical', 'add a summary paragraph')"
+                        className={`
+                          w-full bg-surface border border-border rounded-2xl px-5 py-4 text-sm outline-none transition-all pr-24
+                          focus:border-primary focus:ring-4 focus:ring-primary/10
+                          ${isRefining === section.id ? 'opacity-50 pointer-events-none' : ''}
+                        `}
+                        value={refineInstruction}
+                        onChange={(e) => setRefineInstruction(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleRefineSection(section.id)}
+                        autoFocus
+                      />
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                         <button 
+                           onClick={() => {
+                              setActiveSectionId(null);
+                              setRefineInstruction('');
+                           }}
+                           className="p-2 text-textMuted hover:text-white transition-colors"
+                         >
+                            <X size={18} />
+                         </button>
+                         <button 
+                           onClick={() => handleRefineSection(section.id)}
+                           disabled={isRefining === section.id || !refineInstruction.trim()}
+                           className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl disabled:opacity-50 hover:bg-primaryHover transition-all shadow-lg shadow-primary/20 font-bold text-xs"
+                         >
+                           {isRefining === section.id ? (
+                             <>
+                               <Loader2 size={14} className="animate-spin" />
+                               Refining...
+                             </>
+                           ) : (
+                             <>
+                               Refine
+                               <Send size={14} />
+                             </>
+                           )}
+                         </button>
+                      </div>
+                    </div>
+                    
+                    <p className="text-[10px] text-textMuted text-center">
+                       AI will rewrite the section based on your instruction while preserving the context.
+                    </p>
                   </div>
                 </div>
              )}
           </div>
         ))}
+
 
         {/* Empty State / Fallback */}
         {sections.length === 0 && (

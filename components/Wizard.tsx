@@ -147,50 +147,49 @@ const Wizard: React.FC<WizardProps> = ({ onClose, onSubmit, initialData }) => {
   };
 
   const renderStep1 = () => (
-    <div className="space-y-6 animate-in slide-in-from-right duration-300">
+    <div className="space-y-4 animate-in slide-in-from-right duration-300">
       {/* Mode Toggle */}
-      <div className="flex bg-surface p-1 rounded-xl border border-border">
+      <div className="flex bg-surface p-1 rounded-lg border border-border">
         <button 
           onClick={() => setMode('manual')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
+          className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-md text-xs font-medium transition-all ${
             mode === 'manual' ? 'bg-background text-primary shadow-sm' : 'text-textMuted hover:text-textMain'
           }`}
         >
-          <User size={16} /> Manual Entry
+          <User size={14} /> Manual
         </button>
         <button 
           onClick={() => setMode('ai')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
+          className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-md text-xs font-medium transition-all ${
             mode === 'ai' ? 'bg-background text-primary shadow-sm' : 'text-textMuted hover:text-textMain'
           }`}
         >
-          <Wand2 size={16} /> AI Assistant
+          <Wand2 size={14} /> AI Assistant
         </button>
       </div>
 
       {mode === 'ai' ? (
-        <div className="space-y-4">
-          <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
-            <h3 className="text-sm font-bold text-primary flex items-center gap-2 mb-1">
-              <Sparkles size={16} /> Magic Fill
+        <div className="space-y-3">
+          <div className="p-3 bg-primary/5 border border-primary/20 rounded-xl">
+            <h3 className="text-xs font-bold text-primary flex items-center gap-2 mb-0.5">
+              <Sparkles size={14} /> Magic Fill
             </h3>
-            <p className="text-xs text-textMuted">Paste a project summary or rough notes. AI will extract all details for you.</p>
+            <p className="text-[10px] text-textMuted">Paste notes or summary. AI will extract details.</p>
           </div>
           
-          <div className="space-y-3">
-             <p className="text-[10px] font-bold text-textMuted uppercase tracking-wider">Try a template:</p>
+          <div className="space-y-2">
              <div className="grid grid-cols-2 gap-2">
                 {PROMPT_TEMPLATES.map((t, i) => (
                    <button 
                       key={i}
                       onClick={() => setAiInput(t.text)}
-                      className="p-3 text-left bg-surface border border-border rounded-xl hover:border-primary/50 transition-all group"
+                      className="p-2 text-left bg-surface border border-border rounded-lg hover:border-primary/50 transition-all group"
                    >
-                      <div className="flex items-center gap-2 mb-1">
-                         <span className="text-sm">{t.icon}</span>
-                         <span className="text-xs font-bold group-hover:text-primary transition-colors">{t.title}</span>
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                         <span className="text-xs">{t.icon}</span>
+                         <span className="text-[10px] font-bold group-hover:text-primary transition-colors">{t.title}</span>
                       </div>
-                      <p className="text-[10px] text-textMuted line-clamp-2 leading-tight">{t.text}</p>
+                      <p className="text-[9px] text-textMuted line-clamp-1 leading-tight">{t.text}</p>
                    </button>
                 ))}
              </div>
@@ -200,66 +199,65 @@ const Wizard: React.FC<WizardProps> = ({ onClose, onSubmit, initialData }) => {
             value={aiInput}
             onChange={(e) => setAiInput(e.target.value)}
             placeholder="Describe your project in detail..."
-            rows={6}
-            className="w-full bg-surface border border-border rounded-xl p-4 focus:border-primary outline-none text-sm leading-relaxed"
+            rows={4}
+            className="w-full bg-surface border border-border rounded-xl p-3 focus:border-primary outline-none text-xs leading-relaxed"
           />
           <button 
             onClick={handleMagicFill}
             disabled={isExtracting || !aiInput.trim()}
-            className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primaryHover disabled:bg-primary/50 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20"
+            className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primaryHover disabled:bg-primary/50 text-white font-bold py-2.5 rounded-xl transition-all shadow-lg shadow-primary/20 text-sm"
           >
             {isExtracting ? (
               <>
-                <Loader2 className="animate-spin" size={18} /> Extracting Details...
+                <Loader2 className="animate-spin" size={16} /> Extracting...
               </>
             ) : (
               <>
-                <Wand2 size={18} /> Magic Fill Step 1 & 2
+                <Wand2 size={16} /> Magic Fill All Steps
               </>
             )}
           </button>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-textMuted mb-2">Project Name</label>
+            <label className="block text-xs font-medium text-textMuted mb-1.5">Project Name</label>
             <input 
               type="text" 
               value={formData.name}
               onChange={(e) => updateField('name', e.target.value)}
               placeholder="e.g., Fitness Tracking App"
-              className="w-full bg-surface border border-border rounded-lg p-3 focus:border-primary focus:ring-1 focus:ring-primary outline-none text-textMain placeholder-textMuted/50"
+              className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none text-sm text-textMain placeholder-textMuted/50"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-textMuted mb-2">Brief Concept</label>
+            <label className="block text-xs font-medium text-textMuted mb-1.5">Brief Concept</label>
             <textarea 
               value={formData.concept}
               onChange={(e) => updateField('concept', e.target.value)}
-              placeholder="1-2 line overview of your product..."
+              placeholder="1-2 line overview..."
               rows={2}
-              className="w-full bg-surface border border-border rounded-lg p-3 focus:border-primary outline-none"
+              className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-primary outline-none text-sm"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-textMuted mb-2">Problem to Solve</label>
-            <textarea 
-              value={formData.problem}
-              onChange={(e) => updateField('problem', e.target.value)}
-              placeholder="Describe the main pain point..."
-              rows={3}
-              className="w-full bg-surface border border-border rounded-lg p-3 focus:border-primary outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-textMuted mb-2">Target Audience</label>
-            <input 
-              type="text" 
-              value={formData.audience}
-              onChange={(e) => updateField('audience', e.target.value)}
-              placeholder="e.g., Remote workers aged 25-40"
-              className="w-full bg-surface border border-border rounded-lg p-3 focus:border-primary outline-none"
-            />
+            <label className="block text-xs font-medium text-textMuted mb-1.5">Problem & Audience</label>
+            <div className="grid grid-cols-2 gap-3">
+              <textarea 
+                value={formData.problem}
+                onChange={(e) => updateField('problem', e.target.value)}
+                placeholder="Main pain point..."
+                rows={2}
+                className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-primary outline-none text-sm"
+              />
+              <textarea 
+                value={formData.audience}
+                onChange={(e) => updateField('audience', e.target.value)}
+                placeholder="Target users..."
+                rows={2}
+                className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-primary outline-none text-sm"
+              />
+            </div>
           </div>
         </div>
       )}
@@ -267,29 +265,29 @@ const Wizard: React.FC<WizardProps> = ({ onClose, onSubmit, initialData }) => {
   );
 
   const renderStep2 = () => (
-    <div className="space-y-6 animate-in slide-in-from-right duration-300">
-      <div className="space-y-4">
+    <div className="space-y-4 animate-in slide-in-from-right duration-300">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <label className="text-sm font-bold text-textMain flex items-center gap-2">
+          <label className="text-xs font-bold text-textMain flex items-center gap-2">
             Core Features <span className="text-[10px] font-normal text-textMuted">(Max 10)</span>
           </label>
           <button 
             onClick={handleBrainstorm}
             disabled={isBrainstorming || !formData.concept}
-            className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 hover:bg-primary/20 text-primary rounded-full text-[10px] font-bold transition-all border border-primary/20 disabled:opacity-50"
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary rounded-full text-[10px] font-bold transition-all border border-primary/20 disabled:opacity-50"
           >
             {isBrainstorming ? (
               <>
-                <Loader2 size={12} className="animate-spin" /> Suggesting...
+                <Loader2 size={10} className="animate-spin" /> Suggesting...
               </>
             ) : (
               <>
-                <Sparkles size={12} /> Suggest Features
+                <Sparkles size={10} /> Suggest Features
               </>
             )}
           </button>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-2">
           {formData.features.map((feature, index) => (
             <div key={index} className="flex gap-2 group">
               <div className="flex-1 relative">
@@ -302,7 +300,7 @@ const Wizard: React.FC<WizardProps> = ({ onClose, onSubmit, initialData }) => {
                     setFormData({ ...formData, features: newFeatures });
                   }}
                   placeholder={`Feature ${index + 1}...`}
-                  className="w-full bg-surface border border-border rounded-xl px-4 py-3 focus:border-primary outline-none text-sm"
+                  className="w-full bg-surface border border-border rounded-lg px-3 py-2 focus:border-primary outline-none text-sm"
                 />
               </div>
               <button 
@@ -310,18 +308,18 @@ const Wizard: React.FC<WizardProps> = ({ onClose, onSubmit, initialData }) => {
                   const newFeatures = formData.features.filter((_, i) => i !== index);
                   setFormData({ ...formData, features: newFeatures.length > 0 ? newFeatures : [''] });
                 }}
-                className="p-3 text-textMuted hover:text-red-400 transition-colors"
+                className="p-2 text-textMuted hover:text-red-400 transition-colors"
               >
-                <Trash2 size={18} />
+                <Trash2 size={16} />
               </button>
             </div>
           ))}
           {formData.features.length < 10 && (
             <button 
               onClick={() => setFormData({ ...formData, features: [...formData.features, ''] })}
-              className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-border rounded-xl text-textMuted hover:border-primary hover:text-primary transition-all text-sm font-medium"
+              className="w-full flex items-center justify-center gap-2 py-2 border-2 border-dashed border-border rounded-lg text-textMuted hover:border-primary hover:text-primary transition-all text-xs font-medium"
             >
-              <Plus size={18} /> Add Another Feature
+              <Plus size={16} /> Add Another Feature
             </button>
           )}
         </div>
@@ -330,66 +328,64 @@ const Wizard: React.FC<WizardProps> = ({ onClose, onSubmit, initialData }) => {
   );
 
   const renderStep3 = () => (
-    <div className="space-y-6 animate-in slide-in-from-right duration-300">
+    <div className="space-y-4 animate-in slide-in-from-right duration-300">
       <div>
-        <label className="block text-sm font-medium text-textMuted mb-3">Tech Preferences</label>
-        <div className="grid grid-cols-2 gap-3">
-          {['React', 'Next.js', 'Vue', 'Node.js', 'Python/Django', 'Go', 'Flutter', 'React Native', 'Firebase', 'AWS', 'Supabase'].map(tech => (
+        <label className="block text-xs font-medium text-textMuted mb-2">Tech Preferences</label>
+        <div className="grid grid-cols-3 gap-2">
+          {['React', 'Next.js', 'Vue', 'Node.js', 'Python', 'Go', 'Flutter', 'RN', 'Firebase', 'AWS', 'Supabase', 'PostgreSQL'].map(tech => (
             <div 
               key={tech}
               onClick={() => toggleTech(tech)}
-              className={`p-3 rounded-lg border cursor-pointer transition-all ${
+              className={`p-1.5 rounded-lg border cursor-pointer transition-all text-center ${
                 formData.tech.includes(tech) 
                 ? 'border-primary bg-primary/10 text-primary' 
                 : 'border-border bg-surface hover:border-textMuted'
               }`}
             >
-              <span className="text-sm">{tech}</span>
+              <span className="text-[11px] font-medium">{tech}</span>
             </div>
           ))}
         </div>
       </div>
       
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-medium text-textMuted mb-2">Budget</label>
+          <label className="block text-xs font-medium text-textMuted mb-1.5">Budget</label>
           <select 
             value={formData.budget}
             onChange={(e) => updateField('budget', e.target.value)}
-            className="w-full bg-surface border border-border rounded-lg p-3 outline-none"
+            className="w-full bg-surface border border-border rounded-lg p-2 text-sm outline-none"
           >
             <option>Bootstrapped (&lt;$5k)</option>
-            <option>Small Budget ($5-25k)</option>
-            <option>Medium Budget ($25-100k)</option>
-            <option>Well Funded (&gt;$100k)</option>
+            <option>Small ($5-25k)</option>
+            <option>Medium ($25-100k)</option>
+            <option>Enterprise (&gt;$100k)</option>
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-textMuted mb-2">Timeline</label>
+          <label className="block text-xs font-medium text-textMuted mb-1.5">Timeline</label>
           <select 
             value={formData.timeline}
             onChange={(e) => updateField('timeline', e.target.value)}
-            className="w-full bg-surface border border-border rounded-lg p-3 outline-none"
+            className="w-full bg-surface border border-border rounded-lg p-2 text-sm outline-none"
           >
-            <option>ASAP (1-3 months)</option>
-            <option>Normal (3-6 months)</option>
-            <option>Flexible (6-12 months)</option>
-            <option>Long-term (12+ months)</option>
+            <option>ASAP (1-3m)</option>
+            <option>Normal (3-6m)</option>
+            <option>Flexible (6-12m)</option>
+            <option>Long (12m+)</option>
           </select>
         </div>
       </div>
 
-      <div className="pt-4 border-t border-border">
-         <p className="text-sm font-medium text-textMuted mb-3">Included in generation package:</p>
-         <div className="grid grid-cols-2 gap-2 text-xs text-textMuted">
-            <div className="flex items-center gap-2"><Check size={14} className="text-primary"/> Product Requirements (PRD)</div>
-            <div className="flex items-center gap-2"><Check size={14} className="text-primary"/> Tech Architecture</div>
-            <div className="flex items-center gap-2"><Check size={14} className="text-primary"/> AI Competitor Analysis <span className="text-[10px] bg-secondary/20 text-secondary px-1 rounded">NEW</span></div>
-            <div className="flex items-center gap-2"><Check size={14} className="text-primary"/> Roadmap & Milestones</div>
-            <div className="flex items-center gap-2"><Check size={14} className="text-primary"/> API Specifications</div>
-            <div className="flex items-center gap-2"><Check size={14} className="text-primary"/> Business Requirements</div>
-            <div className="flex items-center gap-2"><Check size={14} className="text-primary"/> Go-to-Market Strategy</div>
-            <div className="flex items-center gap-2"><Check size={14} className="text-primary"/> Database Schema</div>
+      <div className="pt-3 border-t border-border">
+         <p className="text-[10px] font-bold uppercase tracking-wider text-textMuted mb-2">Package Includes:</p>
+         <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[10px] text-textMuted">
+            <div className="flex items-center gap-1.5"><Check size={12} className="text-primary"/> Requirements (PRD)</div>
+            <div className="flex items-center gap-1.5"><Check size={12} className="text-primary"/> Architecture</div>
+            <div className="flex items-center gap-1.5"><Check size={12} className="text-primary"/> Competitor Analysis</div>
+            <div className="flex items-center gap-1.5"><Check size={12} className="text-primary"/> Roadmap</div>
+            <div className="flex items-center gap-1.5"><Check size={12} className="text-primary"/> API Specs</div>
+            <div className="flex items-center gap-1.5"><Check size={12} className="text-primary"/> GTM Strategy</div>
          </div>
       </div>
     </div>
@@ -397,18 +393,18 @@ const Wizard: React.FC<WizardProps> = ({ onClose, onSubmit, initialData }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl bg-background border border-border rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="w-full max-w-xl bg-background border border-border rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="p-6 border-b border-border flex justify-between items-center">
+        <div className="p-4 border-b border-border flex justify-between items-center">
           <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Sparkles className="text-primary" size={20} />
-              {initialData ? `Create: ${initialData.name}` : 'Create New Project'}
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <Sparkles className="text-primary" size={18} />
+              {initialData ? `Edit: ${initialData.name}` : 'New Project'}
             </h2>
-            <p className="text-sm text-textMuted">Step {step} of 3</p>
+            <p className="text-[10px] text-textMuted uppercase tracking-widest font-bold">Step {step} of 3</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-surface rounded-full text-textMuted">
-            <X size={20} />
+          <button onClick={onClose} className="p-1.5 hover:bg-surface rounded-full text-textMuted">
+            <X size={18} />
           </button>
         </div>
 
@@ -421,17 +417,17 @@ const Wizard: React.FC<WizardProps> = ({ onClose, onSubmit, initialData }) => {
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto flex-1">
+        <div className="p-5 overflow-y-auto flex-1">
           {step === 1 && renderStep1()}
           {step === 2 && renderStep2()}
           {step === 3 && renderStep3()}
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-border flex justify-between bg-surface/50">
+        <div className="p-4 border-t border-border flex justify-between bg-surface/50">
           <button 
             onClick={() => step > 1 ? setStep(step - 1) : onClose()}
-            className="px-6 py-2.5 rounded-lg text-sm font-medium text-textMuted hover:text-textMain hover:bg-surface transition-colors"
+            className="px-4 py-2 rounded-lg text-xs font-medium text-textMuted hover:text-textMain hover:bg-surface transition-colors"
           >
             {step === 1 ? 'Cancel' : 'Back'}
           </button>
@@ -443,15 +439,15 @@ const Wizard: React.FC<WizardProps> = ({ onClose, onSubmit, initialData }) => {
             }}
             disabled={step === 1 && !formData.name}
             className={`
-              flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold text-white transition-all
+              flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold text-white transition-all
               ${step === 1 && !formData.name 
                 ? 'bg-primary/50 cursor-not-allowed' 
                 : 'bg-primary hover:bg-primaryHover shadow-lg shadow-primary/25'}
             `}
           >
             {step === 3 ? 'Generate Documents' : 'Next Step'}
-            {step < 3 && <ArrowRight size={16} />}
-            {step === 3 && <Sparkles size={16} />}
+            {step < 3 && <ArrowRight size={14} />}
+            {step === 3 && <Sparkles size={14} />}
           </button>
         </div>
       </div>
