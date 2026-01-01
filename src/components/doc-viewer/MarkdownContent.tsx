@@ -11,19 +11,28 @@ interface MarkdownContentProps {
 }
 
 export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, onShowToast }) => (
-  <div className="prose prose-invert max-w-none 
-    prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-white
-    prose-h1:text-4xl prose-h1:mb-8 prose-h1:pb-4 prose-h1:border-b prose-h1:border-border/50
-    prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-6 prose-h2:flex prose-h2:items-center prose-h2:gap-3
-    prose-p:text-textMain/90 prose-p:leading-8 prose-p:text-lg
-    prose-li:text-textMain/90 prose-li:text-lg
-    prose-strong:text-white prose-strong:font-bold
-    prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:bg-primary/5 prose-blockquote:py-2 prose-blockquote:px-6 prose-blockquote:rounded-r-xl prose-blockquote:italic
-    prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none
-    prose-img:rounded-2xl prose-img:shadow-2xl
-    selection:bg-primary/30"
-  >
-    <ReactMarkdown
+  <article className="max-w-3xl mx-auto text-textMain selection:bg-primary/20 selection:text-white">
+    <div className="prose prose-invert prose-lg max-w-none
+      prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-white
+      prose-h1:text-4xl prose-h1:mb-12 prose-h1:pb-6 prose-h1:border-b prose-h1:border-border/30 prose-h1:leading-tight
+      prose-h2:text-3xl prose-h2:mt-16 prose-h2:mb-8 prose-h2:leading-tight prose-h2:flex prose-h2:items-center prose-h2:gap-3
+      prose-h3:text-2xl prose-h3:mt-12 prose-h3:mb-6 prose-h3:leading-snug
+      prose-h4:text-xl prose-h4:mt-8 prose-h4:mb-4 prose-h4:leading-snug
+      prose-p:text-textMain prose-p:leading-relaxed prose-p:text-lg prose-p:mb-6 prose-p:last:mb-0
+      prose-li:text-textMain prose-li:text-lg prose-li:leading-relaxed prose-li:mb-2
+      prose-strong:text-white prose-strong:font-bold
+      prose-blockquote:border-l-4 prose-blockquote:border-primary/60 prose-blockquote:bg-primary/5 prose-blockquote:py-4 prose-blockquote:px-8 prose-blockquote:rounded-r-2xl prose-blockquote:italic prose-blockquote:my-8 prose-blockquote:text-textMain/95
+      prose-code:text-primary prose-code:bg-primary/10 prose-code:px-2 prose-code:py-1 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-code:before:content-none prose-code:after:content-none
+      prose-img:rounded-3xl prose-img:shadow-2xl prose-img:my-12 prose-img:border prose-img:border-border/20
+      prose-hr:border-border/30 prose-hr:my-16
+      prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-a:transition-all
+      prose-table:shadow-xl prose-table:rounded-2xl prose-table:overflow-hidden prose-table:border prose-table:border-border/20
+      prose-thead:bg-surface/50
+      prose-th:px-6 prose-th:py-4 prose-th:text-left prose-th:text-sm prose-th:font-bold prose-th:text-textMain prose-th:uppercase prose-th:tracking-wider
+      prose-td:px-6 prose-td:py-4 prose-td:text-sm prose-td:border-t prose-td:border-border/10
+      prose-ul:my-6 prose-ol:my-6 print:prose-p:text-black print:prose-headings:text-black print:prose-li:text-black print:selection:bg-blue-200"
+    >
+      <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
         code({ node, inline, className, children, ...props }: any) {
@@ -91,5 +100,6 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, onSho
     >
       {content}
     </ReactMarkdown>
-  </div>
+    </div>
+  </article>
 );

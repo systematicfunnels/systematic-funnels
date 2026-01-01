@@ -52,7 +52,8 @@ async function retryWithBackoff<T>(fn: () => Promise<T>, retries = 3, baseDelay 
 
 // Helper for Google GenAI calls
 async function callGoogleGenAI(prompt: string, docType: string): Promise<AIResult> {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const localKey = localStorage.getItem('sf_gemini_key');
+  const apiKey = localKey || import.meta.env.VITE_GEMINI_API_KEY;
 
   if (!apiKey) {
     console.warn(`No API Key found in VITE_GEMINI_API_KEY. Using Mock Mode for ${docType}.`);
@@ -286,15 +287,79 @@ Budget: ${req.preferences.budget}
 }
 
 // === REFINEMENT ===
-export async function refineDocument(currentContent: string, instruction: string, docType: string): Promise<AIResult> {
+export async function streamRefineDocument(
+  content: string,
+  instruction: string,
+  docType: string,
+  onChunk: (chunk: string) => void
+): Promise<AIResult> {
+  const localKey = localStorage.getItem('sf_gemini_key');
+  const apiKey = localKey || import.meta.env.VITE_GEMINI_API_KEY;
+
+  if (!apiKey) {
+    // Mock streaming
+    const mockContent = `## Refined ${docType}\n\n${content}\n\n**Added by AI:** This is a simulated refinement based on: "${instruction}"`;
+    const words = mockContent.split(' ');
+    for (let i = 0; i < words.length; i++) {
+      onChunk(words[i] + (i === words.length - 1 ? '' : ' '));
+      await delay(30);
+    }
+    return { success: true, content: mockContent };
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
+
+  try {
+    // Enhanced prompt with better context and instructions
+    const prompt = `
+      ROLE: You are an expert document editor and content specialist.
+
+      DOCUMENT TYPE: ${docType}
+      USER REQUEST: "${instruction}"
+
+      ORIGINAL CONTENT:
+      ${content}
+
+      TASK: Refine the content according to the user's specific request.
+      - Maintain the document's purpose and key information
+      - Preserve important technical details and data
+      - Ensure the response is well-structured and professional
+      - Return ONLY the refined markdown content
+      - Do not add meta-commentary or explanations outside the content
+
+      OUTPUT: Return the improved version of the provided content as clean markdown.
+    `;
+
+    const result = await ai.models.generateContentStream({
+      model: "gemini-2.0-flash",
+      contents: prompt,
+      config: {
+        systemInstruction: "You are a professional document editor. Focus on clarity, accuracy, and structure. Return only the refined content without any wrapper text or explanations."
+      }
+    });
+    let fullContent = "";
+
+    for await (const chunk of result) {
+      const chunkText = chunk.text;
+      fullContent += chunkText;
+      onChunk(chunkText);
+    }
+
+    return { success: true, content: fullContent };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function refineDocument(content: string, instruction: string, docType: string): Promise<AIResult> {
   const prompt = `
     Role: Expert Editor.
     Task: Update the content below based on the instruction.
     Instruction: "${instruction}"
-    
+
     Content:
-    """${currentContent}"""
-    
+    """${content}"""
+
     Output: Updated Markdown only. No preamble.
   `;
 

@@ -3,10 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, CheckCircle2, Loader2, Download, Share2, 
-  FileText, RefreshCw, XCircle, Clock, ChevronRight, ChevronDown, 
+  FileText, RefreshCw, XCircle, Clock, ChevronRight, ChevronDown, ChevronLeft,
   User, ArrowRight, Sparkles
 } from 'lucide-react';
 import { Project, DocType } from '../types';
+import { motion, AnimatePresence } from 'framer-motion';
 import DocViewer from '../components/DocViewer';
 import { getDocMetadata } from '../api/aiService';
 import { HIERARCHY_GROUPS, getPhaseColor } from '../data/hierarchy';
@@ -23,15 +24,37 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projects, onRegenerateDoc
   const { id } = useParams();
   const project = projects.find(p => p.id === id);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
-  const [expandedGroups, setExpandedGroups] = useState<string[]>([HIERARCHY_GROUPS[0], HIERARCHY_GROUPS[1]]);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [isZipping, setIsZipping] = useState(false);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  // Group docs by category
+  const groupedDocs: Record<string, typeof project.documents> = {};
+  HIERARCHY_GROUPS.forEach(g => groupedDocs[g] = []);
+  
+  project.documents.forEach(doc => {
+    const meta = getDocMetadata(doc.type);
+    const category = meta?.category || "Other";
+    if (!groupedDocs[category]) groupedDocs[category] = [];
+    groupedDocs[category].push(doc);
+  });
+
+  const currentPhaseIndex = HIERARCHY_GROUPS.findIndex(g => 
+    groupedDocs[g].some(d => d.status === 'generating' || d.status === 'pending')
+  );
 
   useEffect(() => {
     if (project && project.documents.length > 0 && !selectedDocId) {
       setSelectedDocId(project.documents[0].id);
     }
-  }, [project]);
+    
+    // Auto-expand current phase
+    if (currentPhaseIndex !== -1) {
+      const currentPhase = HIERARCHY_GROUPS[currentPhaseIndex];
+      setExpandedGroups(prev => prev.includes(currentPhase) ? prev : [...prev, currentPhase]);
+    }
+  }, [project, currentPhaseIndex]);
 
   if (!project) return <div>Project not found</div>;
 
@@ -42,8 +65,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projects, onRegenerateDoc
   const handleShare = () => {
     const url = window.location.href;
     navigator.clipboard.writeText(url);
-    // In a real app, this would generate a public view token
-    onShowToast?.('Public link copied to clipboard! Beta: Sharing enabled for all members.', 'success');
+    onShowToast?.('Public link copied to clipboard!', 'success');
   };
 
   const selectedDoc = project.documents.find(d => d.id === selectedDocId);
@@ -61,7 +83,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projects, onRegenerateDoc
     const nextDoc = project.documents.find(d => d.type === nextType);
     
     if (nextDoc) {
-      // Trigger generation if pending
       if (nextDoc.status === 'pending') {
         onRegenerateDoc(project.id, nextType);
       }
@@ -101,58 +122,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projects, onRegenerateDoc
     setIsZipping(false);
   };
 
-  // Group docs by category
-  const groupedDocs: Record<string, typeof project.documents> = {};
-  HIERARCHY_GROUPS.forEach(g => groupedDocs[g] = []);
-  
-  project.documents.forEach(doc => {
-    const meta = getDocMetadata(doc.type);
-    const category = meta?.category || "Other";
-    if (!groupedDocs[category]) groupedDocs[category] = [];
-    groupedDocs[category].push(doc);
-  });
 
-  const currentPhaseIndex = HIERARCHY_GROUPS.findIndex(g => 
-    groupedDocs[g].some(d => d.status === 'generating' || d.status === 'pending')
-  );
-
-  const renderRoadmap = () => (
-    <div className="bg-surface border-b border-border px-8 py-4 overflow-x-auto no-print">
-      <div className="flex items-center gap-4 min-w-max">
-        {HIERARCHY_GROUPS.map((group, idx) => {
-          const docs = groupedDocs[group];
-          const completedCount = docs.filter(d => d.status === 'completed').length;
-          const totalCount = docs.length;
-          const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
-          const isActive = idx === currentPhaseIndex || (currentPhaseIndex === -1 && idx === 0);
-          const color = getPhaseColor(group);
-
-          return (
-            <div key={group} className="flex flex-col gap-2 min-w-[150px]">
-              <div className="flex justify-between items-center">
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${isActive ? `text-${color}-400` : 'text-textMuted'}`}>
-                  Phase {idx + 1}
-                </span>
-                <span className="text-[10px] text-textMuted">{Math.round(progress)}%</span>
-              </div>
-              <div className="h-1.5 w-full bg-background rounded-full overflow-hidden border border-border/50">
-                <div 
-                  className={`h-full bg-${color}-500 transition-all duration-1000`} 
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <span className={`text-[11px] font-medium truncate ${isActive ? 'text-textMain' : 'text-textMuted'}`}>
-                {group.split('. ')[1]}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
 
   return (
-    <div className="flex h-[calc(100vh-80px)] md:h-screen -m-4 md:-m-8 relative">
+    <div className="flex h-screen overflow-hidden bg-background relative">
       {/* Mobile Sidebar Toggle */}
       <button 
         onClick={() => setShowMobileSidebar(!showMobileSidebar)}
@@ -163,179 +136,275 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projects, onRegenerateDoc
 
       {/* Sidebar */}
       <div className={`
-        fixed inset-0 z-40 md:relative md:inset-auto md:flex
-        w-80 bg-surface border-r border-border flex flex-col shrink-0 h-full
-        transition-transform duration-300 md:translate-x-0 no-print
+        fixed inset-y-0 left-0 z-40 md:relative 
+        ${isSidebarCollapsed ? 'w-0' : 'w-72'} 
+        bg-surface border-r border-border flex flex-col shrink-0 h-full
+        transition-all duration-300 ease-in-out no-print
         ${showMobileSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
-        <div className="p-5 border-b border-border bg-surface/95 backdrop-blur flex justify-between items-center">
-          <div>
-            <Link to="/dashboard" className="flex items-center text-xs text-textMuted hover:text-primary mb-3">
-              <ArrowLeft size={14} className="mr-1" /> Back
-            </Link>
-            <h2 className="font-bold truncate text-lg max-w-[180px]">{project.name}</h2>
-          </div>
-          <button onClick={() => setShowMobileSidebar(false)} className="md:hidden p-2 text-textMuted">
-            <XCircle size={20} />
-          </button>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {HIERARCHY_GROUPS.map(group => {
-            const groupDocs = groupedDocs[group];
-            if (!groupDocs || groupDocs.length === 0) return null;
-
-            const isExpanded = expandedGroups.includes(group);
-            const isCompleted = groupDocs.every(d => d.status === 'completed');
-            const color = getPhaseColor(group);
+        {!isSidebarCollapsed && (
+          <>
+            <div className="p-6 border-b border-border bg-surface/95 backdrop-blur flex justify-between items-center">
+              <div>
+                <Link to="/dashboard" className="flex items-center text-[10px] font-bold uppercase tracking-widest text-textMuted hover:text-primary mb-2 transition-colors">
+                  <ArrowLeft size={12} className="mr-1.5" /> Dashboard
+                </Link>
+                <h2 className="font-bold truncate text-base max-w-[180px] text-textMain">{project.name}</h2>
+              </div>
+              <button onClick={() => setShowMobileSidebar(false)} className="md:hidden p-2 text-textMuted hover:text-textMain transition-colors">
+                <XCircle size={20} />
+              </button>
+            </div>
             
-            return (
-              <div key={group} className="mb-2">
-                <button 
-                  onClick={() => toggleGroup(group)}
-                  className={`w-full flex items-center justify-between p-2 text-xs font-bold uppercase tracking-wider hover:bg-surfaceHover rounded ${isExpanded ? `text-${color}-400` : 'text-textMuted'}`}
-                >
-                  <div className="flex items-center gap-2">
-                    {isCompleted && <CheckCircle2 size={12} className="text-emerald-400" />}
-                    {group}
-                  </div>
-                  {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                </button>
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-1.5">
+              {HIERARCHY_GROUPS.map((group, groupIdx) => {
+                const groupDocs = groupedDocs[group];
+                if (!groupDocs || groupDocs.length === 0) return null;
+
+                const isExpanded = expandedGroups.includes(group);
+                const groupCompletedCount = groupDocs.filter(d => d.status === 'completed').length;
+                const groupTotalCount = groupDocs.length;
+                const isCompleted = groupCompletedCount === groupTotalCount;
+                const groupProgress = (groupCompletedCount / groupTotalCount) * 100;
+                const color = getPhaseColor(group);
                 
-                {isExpanded && (
-                  <div className="space-y-1 mt-1 pl-1">
-                    {groupDocs.map(doc => (
-                      <button
-                        key={doc.id}
-                        onClick={() => {
-                          setSelectedDocId(doc.id);
-                          setShowMobileSidebar(false);
-                        }}
+                // Dim non-active phases if not expanded
+                const isCurrentPhase = groupIdx === currentPhaseIndex;
+                const isPastPhase = groupIdx < currentPhaseIndex;
+                const isFuturePhase = groupIdx > currentPhaseIndex;
+                
+                return (
+                  <div 
+                    key={group} 
+                    className={`
+                      rounded-2xl transition-all duration-500 overflow-hidden
+                      ${isCurrentPhase ? 'bg-primary/5 ring-1 ring-primary/20 shadow-lg shadow-primary/5' : 'bg-transparent'}
+                      ${isPastPhase && !isExpanded ? 'opacity-50 grayscale-[0.5]' : ''}
+                      ${isFuturePhase && !isExpanded ? 'opacity-40' : ''}
+                      border border-transparent hover:border-border/50
+                    `}
+                  >
+                    <div className="flex flex-col">
+                      <button 
+                        onClick={() => toggleGroup(group)}
                         className={`
-                          w-full flex items-center gap-3 p-2.5 rounded-lg text-sm text-left transition-all
-                          ${selectedDocId === doc.id ? `bg-${color}-500/10 text-${color}-400 border border-${color}-500/20` : 'hover:bg-surfaceHover text-textMuted'}
+                          w-full flex items-center justify-between px-4 py-3.5 
+                          text-[10px] font-black uppercase tracking-[0.15em] transition-all
+                          ${isExpanded ? `text-${color}-400 bg-${color}-500/5` : 'text-textMuted hover:text-textMain'}
                         `}
                       >
-                         {getStatusIcon(doc.status, `text-${color}-400`)}
-                         <span className="truncate flex-1">{getDocMetadata(doc.type)?.title || doc.title}</span>
-                         {doc.status === 'generating' && (
-                           <div className="w-12 h-1 bg-surface rounded-full overflow-hidden">
-                             <div className={`h-full bg-${color}-500 animate-pulse`} style={{width: `${doc.progress}%`}}></div>
-                           </div>
-                         )}
+                        <div className="flex items-center gap-3">
+                          <div className={`
+                            w-6 h-6 rounded-lg flex items-center justify-center text-[10px] transition-all
+                            ${isCompleted 
+                              ? 'bg-emerald-500/20 text-emerald-400' 
+                              : isCurrentPhase 
+                                ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-110' 
+                                : 'bg-surface border border-border text-textMuted'}
+                          `}>
+                            {isCompleted ? <CheckCircle2 size={12} strokeWidth={3} /> : groupIdx + 1}
+                          </div>
+                          <span className={`truncate ${isCurrentPhase ? 'text-textMain' : ''}`}>{group}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {isCurrentPhase && !isExpanded && (
+                            <div className="flex gap-1">
+                              <span className="w-1 h-1 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
+                              <span className="w-1 h-1 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
+                              <span className="w-1 h-1 rounded-full bg-primary animate-bounce" />
+                            </div>
+                          )}
+                          {isExpanded ? <ChevronDown size={14} strokeWidth={3} /> : <ChevronRight size={14} strokeWidth={3} />}
+                        </div>
                       </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                    </div>
+                    
+                    <AnimatePresence>
+                      {isExpanded && (
+                        <motion.div 
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3, ease: "circOut" }}
+                          className="space-y-0.5 pb-3 px-2"
+                        >
+                          {groupDocs.map(doc => {
+                            const isSelected = selectedDocId === doc.id;
+                            const isNextUp = doc.status === 'pending' && 
+                              project.documents.filter(d => d.status === 'completed').length === project.documents.indexOf(doc);
 
-        <div className="p-4 border-t border-border">
-          <button onClick={handleDownloadZip} disabled={isZipping} className="w-full flex items-center justify-center gap-2 py-2 bg-surface border border-border rounded hover:bg-surfaceHover text-xs">
-            {isZipping ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Download All
-          </button>
-        </div>
+                            return (
+                              <button
+                                key={doc.id}
+                                onClick={() => {
+                                  setSelectedDocId(doc.id);
+                                  setShowMobileSidebar(false);
+                                }}
+                                className={`
+                                  w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] text-left transition-all group relative
+                                  ${isSelected 
+                                    ? `bg-${color}-500/10 text-${color}-400 font-bold shadow-sm ring-1 ring-${color}-500/20` 
+                                    : 'hover:bg-surfaceHover text-textMuted hover:text-textMain'}
+                                `}
+                              >
+                                 <div className={`shrink-0 transition-transform duration-300 ${isSelected ? 'scale-110' : 'group-hover:scale-110'}`}>
+                                   {getStatusIcon(doc.status, `text-${color}-400`)}
+                                 </div>
+                                 <div className="flex-1 min-w-0">
+                                   <div className="flex items-center justify-between gap-2">
+                                     <span className={`truncate leading-tight ${isSelected ? 'translate-x-0.5' : ''} transition-transform`}>
+                                       {getDocMetadata(doc.type)?.title || doc.title}
+                                     </span>
+                                     {isNextUp && (
+                                       <Sparkles size={10} className="text-secondary shrink-0 animate-pulse" />
+                                     )}
+                                   </div>
+                                 </div>
+                                 {doc.status === 'generating' && (
+                                   <div className="w-10 h-1 bg-surface/50 rounded-full overflow-hidden shrink-0">
+                                     <div className={`h-full bg-${color}-500 animate-pulse transition-all duration-500`} style={{width: `${doc.progress}%`}}></div>
+                                   </div>
+                                 )}
+                                 {isSelected && (
+                                   <motion.div 
+                                     layoutId="activeDocIndicator"
+                                     className={`absolute left-0 w-1 h-4 bg-${color}-400 rounded-r-full`}
+                                   />
+                                 )}
+                              </button>
+                            );
+                          })}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="p-5 border-t border-border bg-surface/80 backdrop-blur-md">
+              <div className="mb-5">
+                <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-textMuted mb-2.5">
+                  <span className="flex items-center gap-1.5">
+                    <RefreshCw size={10} className="animate-spin-slow" />
+                    Overall Progress
+                  </span>
+                  <span className="text-primary">{Math.round((project.documents.filter(d => d.status === 'completed').length / project.documents.length) * 100)}%</span>
+                </div>
+                <div className="h-2 w-full bg-background/50 border border-border/50 rounded-full overflow-hidden p-0.5">
+                  <div 
+                    className="h-full bg-gradient-to-r from-primary via-secondary to-primary bg-[length:200%_auto] animate-gradient transition-all duration-1000 rounded-full" 
+                    style={{ width: `${(project.documents.filter(d => d.status === 'completed').length / project.documents.length) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button 
+                  onClick={handleDownloadZip} 
+                  disabled={isZipping} 
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-surface border border-border rounded-xl hover:border-primary/50 text-[10px] font-bold uppercase tracking-widest text-textMuted hover:text-textMain transition-all shadow-sm active:scale-95 disabled:opacity-50"
+                >
+                  {isZipping ? <Loader2 size={12} className="animate-spin" /> : <Download size={14} />} 
+                  <span>Export</span>
+                </button>
+                <button 
+                  onClick={handleShare} 
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-surface border border-border rounded-xl hover:border-primary/50 text-[10px] font-bold uppercase tracking-widest text-textMuted hover:text-textMain transition-all shadow-sm active:scale-95"
+                >
+                  <Share2 size={14} /> 
+                  <span>Share</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Overlay for mobile sidebar */}
       {showMobileSidebar && (
         <div 
-          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden transition-opacity"
           onClick={() => setShowMobileSidebar(false)}
         />
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col bg-background h-full overflow-hidden">
-        {renderRoadmap()}
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden">
+        {/* Sidebar Toggle (Desktop) */}
+        <button 
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className={`
+            hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-50 
+            w-6 h-12 bg-surface border border-l-0 border-border rounded-r-xl
+            items-center justify-center text-textMuted hover:text-primary transition-all hover:w-8 group
+          `}
+        >
+          {isSidebarCollapsed ? <ChevronRight size={14} className="group-hover:scale-125 transition-transform" /> : <ChevronLeft size={14} className="group-hover:scale-125 transition-transform" />}
+        </button>
+
         {selectedDoc && metadata ? (
-          <>
-            {/* Owner / CTA Header */}
-            <div className="bg-surface/50 border-b border-border p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
-              <div className="flex items-center gap-6">
-                <div>
-                   <h3 className="text-xl font-bold">{metadata.title}</h3>
-                   <div className="flex items-center gap-2 text-xs text-textMuted mt-1">
-                      <span className="bg-surface border border-border px-2 py-0.5 rounded flex items-center gap-1">
-                        <User size={12} /> Owner: {metadata.owner}
-                      </span>
-                      {selectedDoc.status === 'completed' && <span className="text-green-400 flex items-center gap-1"><CheckCircle2 size={12}/> Ready</span>}
-                      <span className="hidden md:inline opacity-50">•</span>
-                      <span className="hidden md:inline italic">{metadata.description}</span>
-                   </div>
-                </div>
-
-                <div className="hidden lg:flex items-center gap-2">
-                   <button 
-                     onClick={handlePrint}
-                     className="flex items-center gap-2 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-bold hover:bg-surfaceHover transition-all"
-                   >
-                     <FileText size={14} /> Export PDF
-                   </button>
-                   <button 
-                     onClick={handleShare}
-                     className="flex items-center gap-2 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-bold hover:bg-surfaceHover transition-all"
-                   >
-                     <Share2 size={14} /> Public Share
-                   </button>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-3">
-                 <button 
-                   onClick={() => onRegenerateDoc(project.id, selectedDoc.type)}
-                   className="p-2 hover:bg-surfaceHover rounded text-textMuted hover:text-primary transition-colors"
-                   title="Regenerate"
-                 >
-                   <RefreshCw size={18} className={selectedDoc.status === 'generating' ? 'animate-spin' : ''} />
-                 </button>
-                 
-                 {metadata.nextDocs && metadata.nextDocs.length > 0 && (
-                   <button 
-                     onClick={handleNextStep}
-                     className={`flex items-center gap-2 bg-${getPhaseColor(metadata.category)}-500 hover:bg-${getPhaseColor(metadata.category)}-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-${getPhaseColor(metadata.category)}-500/20 transition-all`}
-                   >
-                      {metadata.cta} <ArrowRight size={16} />
-                   </button>
-                 )}
-              </div>
-            </div>
-
-            {/* Viewer */}
-            <div className="flex-1 overflow-hidden">
-              {selectedDoc.status === 'pending' ? (
-                 <div className="flex flex-col items-center justify-center h-full text-textMuted p-6">
-                    <div className={`w-16 h-16 bg-${getPhaseColor(metadata.category)}-500/5 rounded-full flex items-center justify-center mb-6 border border-${getPhaseColor(metadata.category)}-500/10`}>
-                       <FileText size={32} className={`text-${getPhaseColor(metadata.category)}-400 opacity-40`} />
+          <div className="flex-1 flex flex-col h-full overflow-hidden">
+            {/* Contextual Header / Momentum Bar */}
+            <div className="px-8 py-5 bg-surface/50 border-b border-border/50 flex items-center justify-between no-print shrink-0 backdrop-blur-md z-30">
+               <div className="flex items-center gap-5 min-w-0">
+                  <div className={`w-10 h-10 rounded-xl bg-${getPhaseColor(metadata.category)}-500/10 flex items-center justify-center shrink-0 border border-${getPhaseColor(metadata.category)}-500/20 shadow-sm`}>
+                    <FileText size={20} className={`text-${getPhaseColor(metadata.category)}-400`} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className={`text-[9px] font-bold uppercase tracking-[0.2em] text-${getPhaseColor(metadata.category)}-400/80`}>{metadata.category}</span>
                     </div>
-                    <h3 className="text-lg font-bold mb-2">Next Step: {metadata.title}</h3>
-                    <p className="max-w-md text-center mb-8 text-sm opacity-70 leading-relaxed">
-                       {metadata.description}
-                       <br /><br />
-                       This document belongs to <b>{metadata.category}</b>. 
-                       Generating this will unlock the next steps in your project journey.
-                    </p>
-                    <button 
+                    <h3 className="text-base font-bold text-textMain truncate tracking-tight">{metadata.title}</h3>
+                  </div>
+               </div>
+               
+               <div className="flex items-center gap-4">
+                  {selectedDoc.status === 'completed' ? (
+                    <div className="flex items-center gap-2.5 px-4 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full shadow-sm">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Live & Ready</span>
+                    </div>
+                  ) : selectedDoc.status === 'generating' ? (
+                    <div className="flex items-center gap-3 px-4 py-1.5 bg-primary/10 border border-primary/20 rounded-full shadow-sm">
+                      <Loader2 size={14} className="text-primary animate-spin" />
+                      <span className="text-[10px] font-bold text-primary uppercase tracking-widest">AI Architecting...</span>
+                    </div>
+                  ) : (
+                    <button
                       onClick={() => onRegenerateDoc(project.id, selectedDoc.type)}
-                      className={`px-8 py-3 bg-${getPhaseColor(metadata.category)}-500 text-white rounded-xl font-bold hover:bg-${getPhaseColor(metadata.category)}-600 shadow-lg shadow-${getPhaseColor(metadata.category)}-500/20 transition-all flex items-center gap-2`}
+                      className="group relative flex items-center gap-2.5 px-6 py-2 bg-primary hover:bg-primaryHover text-white rounded-full font-bold text-[11px] uppercase tracking-[0.1em] shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 overflow-hidden"
                     >
-                       <Sparkles size={18} /> Generate {metadata.title.split('. ')[1]}
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:animate-shimmer" />
+                      <Sparkles size={14} className="relative z-10" /> 
+                      <span className="relative z-10">Start Generation</span>
                     </button>
-                 </div>
-              ) : (
-                <DocViewer
-                  document={selectedDoc}
-                  onUpdate={(content) => onUpdateDoc?.(project.id, selectedDoc.id, content)}
-                  onShowToast={onShowToast}
-                />
-              )}
+                  )}
+               </div>
             </div>
-          </>
+
+            <div className="flex-1 overflow-hidden relative">
+              <DocViewer
+                document={selectedDoc}
+                onUpdate={(content) => onUpdateDoc?.(project.id, selectedDoc.id, content)}
+                onShowToast={onShowToast}
+                onRegenerateDoc={(docType) => onRegenerateDoc(project.id, docType as DocType)}
+                onNextStep={handleNextStep}
+              />
+            </div>
+          </div>
         ) : (
-          <div className="flex items-center justify-center h-full text-textMuted">Select a document</div>
+          <div className="flex items-center justify-center h-full text-textMuted bg-surface/5">
+            <div className="text-center animate-in fade-in zoom-in duration-500">
+              <div className="w-20 h-20 bg-surface border border-border rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-black/20">
+                <FileText size={32} className="text-primary/40" />
+              </div>
+              <h3 className="text-xl font-bold text-textMain mb-2">Select a Milestone</h3>
+              <p className="text-sm text-textMuted max-w-xs mx-auto leading-relaxed">
+                Choose a document from the roadmap to begin generating your project specs.
+              </p>
+            </div>
+          </div>
         )}
       </div>
     </div>

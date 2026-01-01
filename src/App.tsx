@@ -15,6 +15,7 @@ import PasswordResetConfirm from './pages/PasswordResetConfirm';
 import MfaSetup from './pages/MfaSetup';
 import MfaVerify from './pages/MfaVerify';
 import Landing from './pages/Landing';
+import { StatusToast } from './components/StatusToast';
 import { Project, User, DocType, Document, Template, AIGenerationRequest } from './types';
 import * as aiService from './api/aiService';
 import { DOC_HIERARCHY } from './data/hierarchy';
@@ -89,11 +90,28 @@ const App: React.FC = () => {
       });
   };
 
-  const triggerGeneration = async (project: Project) => {
-    // Populate ALL documents from hierarchy as pending placeholders
-    // This creates the full tree visibility immediately
+  const handleCreateProject = (data: any) => {
+    const newProject: Project = {
+      id: Date.now().toString(),
+      name: data.name,
+      problem: data.problem,
+      audience: data.audience,
+      concept: data.concept,
+      features: data.features.filter((f: string) => f.trim() !== ''),
+      techStack: data.tech,
+      budget: data.budget,
+      timeline: data.timeline,
+      teamSize: data.teamSize,
+      status: 'new',
+      documents: [], // Initially empty
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      competitors: [] 
+    };
+
+    // Create the full hierarchy documents immediately so the user sees them on arrival
     const hierarchyDocs: Document[] = Object.values(DOC_HIERARCHY).map(node => ({
-      id: `${project.id}-${node.id}`,
+      id: `${newProject.id}-${node.id}`,
       type: node.id,
       title: node.title,
       content: '',
@@ -104,12 +122,19 @@ const App: React.FC = () => {
       lastUpdated: new Date().toISOString()
     }));
 
-    const updatedProject = { ...project, documents: hierarchyDocs, status: 'in_progress' as const };
+    const projectWithDocs = { ...newProject, documents: hierarchyDocs, status: 'in_progress' as const };
+
     setProjects(prev => {
-       const next = prev.map(p => p.id === project.id ? updatedProject : p);
+       const next = [projectWithDocs, ...prev];
        return next;
     });
 
+    // Start background generation
+    triggerGeneration(projectWithDocs);
+    return projectWithDocs.id;
+  };
+
+  const triggerGeneration = async (project: Project) => {
     const req: AIGenerationRequest = {
        projectConcept: project.concept,
        features: project.features,
@@ -129,65 +154,35 @@ const App: React.FC = () => {
           updateDocState(project.id, type, { progress, phase });
        });
        updateDocState(project.id, type, { 
-          status: res.success ? 'completed' : 'failed',
-          content: res.content || '',
-          progress: 100,
-          phase: res.success ? 'Completed' : 'Failed'
-       });
-    };
-
-    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-    // GENERATION STRATEGY:
-    // Only auto-generate the first 2 groups (Strategy + Product) initially.
-    // The rest remain "Pending" for the user to trigger via the "Next" CTA.
-    // This saves tokens and follows the logical workflow.
-    
-    // Group 1: Strategy
-    const strategyDocs = [
-      DocType.STRATEGY_VISION, 
-      DocType.STRATEGY_MARKET, 
-      DocType.STRATEGY_PERSONAS
-    ];
-    
-    // Group 2: Product High Level
-    const productDocs = [
-      DocType.PRODUCT_BRD,
-      DocType.PRODUCT_PRD
-    ];
-
-    for (const type of strategyDocs) { await startStream(type); await delay(3000); }
-    for (const type of productDocs) { await startStream(type); await delay(3000); }
-    
-    // Other docs remain pending/empty until user clicks "Next"
+        status: res.success ? 'completed' : 'failed',
+        content: res.content || '',
+        progress: 100,
+        phase: res.success ? 'Completed' : 'Failed'
+     });
   };
 
-  const handleCreateProject = (data: any) => {
-    const newProject: Project = {
-      id: Date.now().toString(),
-      name: data.name,
-      problem: data.problem,
-      audience: data.audience,
-      concept: data.concept,
-      features: data.features.filter((f: string) => f.trim() !== ''),
-      techStack: data.tech,
-      budget: data.budget,
-      timeline: data.timeline,
-      teamSize: data.teamSize,
-      status: 'new',
-      documents: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      competitors: [] 
-    };
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-    setProjects(prev => {
-       const next = [newProject, ...prev];
-       return next;
-    });
-    triggerGeneration(newProject);
-    return newProject.id;
-  };
+  // GENERATION STRATEGY:
+  // Only auto-generate the first 2 groups (Strategy + Product) initially.
+  // The rest remain "Pending" for the user to trigger via the "Next" CTA.
+  
+  // Group 1: Strategy
+  const strategyDocs = [
+    DocType.STRATEGY_VISION, 
+    DocType.STRATEGY_MARKET, 
+    DocType.STRATEGY_PERSONAS
+  ];
+  
+  // Group 2: Product High Level
+  const productDocs = [
+    DocType.PRODUCT_BRD,
+    DocType.PRODUCT_PRD
+  ];
+
+  for (const type of strategyDocs) { await startStream(type); await delay(2000); }
+  for (const type of productDocs) { await startStream(type); await delay(2000); }
+};
 
   const handleRegenerateDoc = async (projectId: string, docType: DocType) => {
      const project = projects.find(p => p.id === projectId);
@@ -249,12 +244,11 @@ const App: React.FC = () => {
   return (
     <Router>
       {toast && (
-        <div className={`fixed bottom-4 right-4 z-[100] px-6 py-3 rounded-lg shadow-2xl border animate-in slide-in-from-bottom-5 fade-in duration-300 ${
-           toast.type === 'success' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 
-           'bg-surface border-border text-white'
-        }`}>
-           {toast.message}
-        </div>
+        <StatusToast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={() => setToast(null)} 
+        />
       )}
 
       <Routes>
@@ -290,6 +284,7 @@ const App: React.FC = () => {
                 <Wizard 
                   initialData={activeTemplate?.prefill}
                   onClose={() => { setShowWizard(false); setActiveTemplate(null); }}
+                  onShowToast={showToast}
                   onSubmit={(data) => {
                     setShowWizard(false);
                     setActiveTemplate(null);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { 
   Menu, Bell, Search, X, Check, Info, HelpCircle, FileText
@@ -20,6 +20,18 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, showToast }) 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,8 +84,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, showToast }) 
                 <form onSubmit={handleSearch} className="relative group">
                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-textMuted group-focus-within:text-primary transition-colors" size={14} />
                    <input 
+                      ref={searchInputRef}
                       type="text" 
-                      placeholder="Search..." 
+                      placeholder="Search... (Ctrl+K)" 
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="bg-background/50 border border-border rounded-md pl-8 pr-3 py-1 text-[11px] focus:outline-none focus:border-primary w-40 focus:w-60 transition-all"
@@ -141,7 +154,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, showToast }) 
     </div>
 
     {/* Status Bar (IDE-style) */}
-      <StatusBar credits={user.apiCredits || 0} />
+      <StatusBar credits={user.apiCredits || 0} onShowToast={showToast} />
 
       {/* Mobile Overlay */}
       {sidebarOpen && (

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MessageSquare, X, Send, Loader2 } from 'lucide-react';
+import { Sparkles, X, Send, Loader2 } from 'lucide-react';
 
 interface AIRefinePanelProps {
   instruction: string;
@@ -10,7 +10,18 @@ interface AIRefinePanelProps {
   onClose: () => void;
 }
 
-const QUICK_TAGS = ['More technical', 'More concise', 'Add examples', 'Formal tone'];
+const QUICK_TAGS = [
+  'More concise',
+  'Add examples',
+  'Formal tone',
+  'Simplify language',
+  'Add section headers',
+  'Improve structure',
+  'Add bullet points',
+  'Make it actionable',
+  'Add metrics/KPIs',
+  'Professional tone'
+];
 
 export const AIRefinePanel: React.FC<AIRefinePanelProps> = ({
   instruction,
@@ -19,66 +30,76 @@ export const AIRefinePanel: React.FC<AIRefinePanelProps> = ({
   onRefine,
   onClose,
 }) => (
-  <motion.div 
-    initial={{ opacity: 0, y: -20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    className="mb-12 no-print"
+  <motion.div
+    initial={{ opacity: 0, scale: 0.95, y: -20 }}
+    animate={{ opacity: 1, scale: 1, y: 0 }}
+    exit={{ opacity: 0, scale: 0.95, y: -20 }}
+    className="fixed top-24 left-1/2 -translate-x-1/2 w-full max-w-xl z-[100] px-4 no-print"
+    role="dialog"
   >
-    <div className="p-1 rounded-2xl bg-gradient-to-r from-primary/30 via-secondary/30 to-primary/30 shadow-2xl shadow-primary/5">
-      <div className="bg-surface/95 backdrop-blur-xl rounded-[14px] p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <MessageSquare size={16} className="text-primary" />
+    <div className="bg-surface/60 backdrop-blur-2xl rounded-2xl border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.5)] overflow-hidden ring-1 ring-white/5">
+      <div className="px-4 py-2.5 bg-white/5 border-b border-white/5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-primary/20 text-primary">
+            <Sparkles size={14} />
           </div>
-          <div>
-            <h4 className="text-sm font-extrabold text-white">Smart Refinement</h4>
-            <p className="text-[10px] text-textMuted uppercase font-bold tracking-tight">AI Assistant</p>
-          </div>
-          <button 
+          <span className="text-[10px] font-extrabold uppercase tracking-widest text-textMain/80">AI Refiner</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] text-textMuted font-mono bg-white/5 px-1.5 py-0.5 rounded">ESC to close</span>
+          <button
             onClick={onClose}
-            className="ml-auto text-textMuted hover:text-white"
+            className="p-1 text-textMuted hover:text-white transition-colors"
           >
-            <X size={16} />
+            <X size={14} />
           </button>
         </div>
-        
-        <div className="relative group">
-          <textarea 
-            rows={2}
+      </div>
+
+      <div className="p-4">
+        <div className="relative">
+          <textarea
+            autoFocus
+            rows={1}
             value={instruction}
             onChange={(e) => onInstructionChange(e.target.value)}
-            placeholder="e.g., 'Make it more professional', 'Add a section on scalability', 'Shorten the intro'..."
-            className="w-full bg-background/50 border border-border/50 rounded-xl px-4 py-3 text-sm focus:border-primary/50 outline-none transition-all resize-none pr-24 leading-relaxed"
+            placeholder="What should AI do with this document?"
+            className="w-full bg-background/60 border border-white/10 rounded-xl px-4 py-3.5 text-sm focus:border-primary/50 outline-none transition-all resize-none pr-24 leading-relaxed min-h-[52px] shadow-inner"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 onRefine(instruction);
               }
+              if (e.key === 'Escape') {
+                onClose();
+              }
             }}
           />
-          <div className="absolute right-2 bottom-2">
-            <button 
+          <div className="absolute right-2 top-2 bottom-2 flex items-center">
+            <button
               onClick={() => onRefine(instruction)}
               disabled={isRefining || !instruction.trim()}
-              className="bg-primary hover:bg-primaryHover text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all disabled:opacity-50 shadow-lg shadow-primary/10"
+              className="bg-primary hover:bg-primaryHover text-white px-4 py-2 rounded-lg text-[11px] font-extrabold flex items-center gap-2 transition-all disabled:opacity-30 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]"
             >
-              {isRefining ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-              {isRefining ? 'Refining...' : 'Send'}
+              {isRefining ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+              {isRefining ? '...' : 'Refine'}
             </button>
           </div>
         </div>
-        
-        <div className="mt-3 flex flex-wrap gap-2">
-          {QUICK_TAGS.map(tag => (
-            <button 
-              key={tag}
-              onClick={() => onInstructionChange(tag)}
-              className="text-[11px] px-2.5 py-1 rounded-full bg-surfaceHover/50 border border-border/30 text-textMuted hover:text-primary hover:border-primary/30 transition-all"
-            >
-              + {tag}
-            </button>
-          ))}
+
+        <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <span className="text-[9px] font-black text-textMuted uppercase tracking-widest flex-shrink-0 opacity-50">Presets</span>
+          <div className="flex gap-2">
+            {QUICK_TAGS.slice(0, 5).map(tag => (
+              <button
+                key={tag}
+                onClick={() => onInstructionChange(tag)}
+                className="text-[10px] px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 text-textMuted hover:text-primary hover:bg-primary/10 hover:border-primary/30 transition-all whitespace-nowrap font-medium"
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

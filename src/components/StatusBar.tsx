@@ -6,26 +6,36 @@ import {
 
 interface StatusBarProps {
   credits: number;
+  onShowToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
-const StatusBar: React.FC<StatusBarProps> = ({ credits }) => {
+const StatusBar: React.FC<StatusBarProps> = ({ credits, onShowToast }) => {
   return (
     <footer className="h-6 bg-primary text-white flex items-center justify-between px-3 text-[10px] select-none z-50">
       <div className="flex items-center h-full">
         {/* Connection Status */}
-        <div className="flex items-center gap-1.5 px-2 hover:bg-white/10 h-full cursor-pointer transition-colors border-r border-white/10">
+        <div 
+          onClick={() => onShowToast?.('System connection is stable', 'success')}
+          className="flex items-center gap-1.5 px-2 hover:bg-white/10 h-full cursor-pointer transition-colors border-r border-white/10"
+        >
           <Wifi size={10} />
           <span className="font-medium">Connected</span>
         </div>
 
         {/* Sync Status */}
-        <div className="flex items-center gap-1.5 px-2 hover:bg-white/10 h-full cursor-pointer transition-colors border-r border-white/10">
+        <div 
+          onClick={() => onShowToast?.('All changes are synced to cloud', 'success')}
+          className="flex items-center gap-1.5 px-2 hover:bg-white/10 h-full cursor-pointer transition-colors border-r border-white/10"
+        >
           <CheckCircle2 size={10} />
           <span>Synced</span>
         </div>
 
         {/* Git Branch (Mock) */}
-        <div className="flex items-center gap-1.5 px-2 hover:bg-white/10 h-full cursor-pointer transition-colors">
+        <div 
+          onClick={() => onShowToast?.('Current workspace: main branch', 'info')}
+          className="flex items-center gap-1.5 px-2 hover:bg-white/10 h-full cursor-pointer transition-colors"
+        >
           <Github size={10} />
           <span>main*</span>
         </div>
@@ -33,13 +43,19 @@ const StatusBar: React.FC<StatusBarProps> = ({ credits }) => {
 
       <div className="flex items-center h-full">
         {/* Credits */}
-        <div className="flex items-center gap-1.5 px-3 bg-white/20 h-full font-bold">
+        <div 
+          onClick={() => onShowToast?.(`You have ${credits} AI credits remaining`, 'info')}
+          className="flex items-center gap-1.5 px-3 bg-white/20 h-full font-bold cursor-pointer hover:bg-white/30 transition-colors"
+        >
           <Zap size={10} fill="currentColor" />
           <span>{credits} CREDITS</span>
         </div>
 
         {/* Error Count (Mock) */}
-        <div className="flex items-center gap-1 px-2 hover:bg-white/10 h-full cursor-pointer transition-colors border-l border-white/10">
+        <div 
+          onClick={() => onShowToast?.('No active issues in current workspace', 'success')}
+          className="flex items-center gap-1 px-2 hover:bg-white/10 h-full cursor-pointer transition-colors border-l border-white/10"
+        >
           <AlertCircle size={10} />
           <span>0</span>
         </div>
@@ -51,7 +67,10 @@ const StatusBar: React.FC<StatusBarProps> = ({ credits }) => {
         </div>
 
         {/* Layout Toggle (Mock) */}
-        <div className="flex items-center gap-1.5 px-2 hover:bg-white/10 h-full cursor-pointer transition-colors border-l border-white/10">
+        <div 
+          onClick={() => onShowToast?.('Console view coming soon!', 'info')}
+          className="flex items-center gap-1.5 px-2 hover:bg-white/10 h-full cursor-pointer transition-colors border-l border-white/10"
+        >
           <Terminal size={10} />
         </div>
       </div>

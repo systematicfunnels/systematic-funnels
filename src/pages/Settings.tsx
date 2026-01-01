@@ -13,6 +13,8 @@ const OPENROUTER_MODELS = [
 
 const Settings: React.FC = () => {
   const [provider, setProvider] = useState('google');
+  const [geminiKey, setGeminiKey] = useState('');
+  const [showGeminiKey, setShowGeminiKey] = useState(false);
   const [openRouterKey, setOpenRouterKey] = useState('');
   const [showOpenRouterKey, setShowOpenRouterKey] = useState(false);
   const [openRouterModel, setOpenRouterModel] = useState('anthropic/claude-3.5-sonnet');
@@ -23,12 +25,14 @@ const Settings: React.FC = () => {
   useEffect(() => {
     // Load settings from localStorage with updated keys
     setProvider(localStorage.getItem('sf_provider') || 'google');
+    setGeminiKey(localStorage.getItem('sf_gemini_key') || '');
     setOpenRouterKey(localStorage.getItem('sf_openrouter_key') || '');
     setOpenRouterModel(localStorage.getItem('sf_openrouter_model') || 'anthropic/claude-3.5-sonnet');
   }, []);
 
   const handleSave = () => {
     localStorage.setItem('sf_provider', provider);
+    localStorage.setItem('sf_gemini_key', geminiKey);
     localStorage.setItem('sf_openrouter_key', openRouterKey);
     localStorage.setItem('sf_openrouter_model', openRouterModel);
     
@@ -107,6 +111,39 @@ const Settings: React.FC = () => {
                      </button>
                   </div>
                </div>
+
+               {provider === 'google' && (
+                  <div className="space-y-4 pt-4 border-t border-border animate-in slide-in-from-top-4 duration-300">
+                     <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg flex gap-3 text-sm text-primary/90">
+                        <AlertCircle className="shrink-0" size={18} />
+                        <p>
+                           By default, we use a system API key. You can provide your own Gemini API key below to override it.
+                        </p>
+                     </div>
+
+                     <div>
+                        <label className="block text-sm font-medium text-textMuted mb-2">
+                           <span className="flex items-center gap-2"><Key size={14} /> Custom Gemini API Key (Optional)</span>
+                        </label>
+                        <div className="relative">
+                           <input 
+                              type={showGeminiKey ? "text" : "password"} 
+                              value={geminiKey}
+                              onChange={(e) => setGeminiKey(e.target.value)}
+                              placeholder="Enter your Gemini API key..."
+                              className="w-full bg-background border border-border rounded-lg p-3 pr-10 focus:border-primary outline-none font-mono text-sm"
+                           />
+                           <button
+                              type="button"
+                              onClick={() => setShowGeminiKey(!showGeminiKey)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-textMuted hover:text-textMain transition-colors"
+                           >
+                              {showGeminiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                           </button>
+                        </div>
+                     </div>
+                  </div>
+               )}
 
                {provider === 'openrouter' && (
                   <div className="space-y-6 pt-4 border-t border-border animate-in slide-in-from-top-4 duration-300">

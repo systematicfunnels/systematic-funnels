@@ -1,108 +1,157 @@
-import React from 'react';
-import { 
-  Zap, Check, Copy, Download, Sparkles, Edit3 
+import React, { useState } from 'react';
+import {
+  MoreHorizontal, Edit3, Download, Share2, Check, Sparkles, Copy, Undo, Redo, User, RefreshCw
 } from 'lucide-react';
 import { Editor } from '@tiptap/react';
-import { EditorCommands } from './editor/EditorCommands';
+import { getDocMetadata } from '../../api/aiService';
 
 interface DocToolbarProps {
   docType: string;
   isEditing: boolean;
   isCopied: boolean;
-  showRefine: boolean;
   editor: Editor | null;
   onCopy: () => void;
   onDownload: () => void;
-  onToggleRefine: () => void;
   onStartEdit: () => void;
   onCancelEdit: () => void;
   onSave: () => void;
+  onShowToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
+  document?: any; // Add document prop to access metadata
+  onRegenerateDoc?: (docType: any) => void;
+  onNextStep?: () => void;
+  hasUnsavedChanges?: boolean;
 }
 
 export const DocToolbar: React.FC<DocToolbarProps> = ({
   docType,
   isEditing,
   isCopied,
-  showRefine,
   editor,
   onCopy,
   onDownload,
-  onToggleRefine,
   onStartEdit,
   onCancelEdit,
   onSave,
-}) => (
-  <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-20 no-print">
-    <div className="flex items-center gap-3">
-      <div className="p-2 bg-primary/10 rounded-lg text-primary">
-        <Zap size={18} />
-      </div>
-      <div>
-        <h2 className="text-sm font-bold capitalize text-white tracking-tight">
-          {docType.replace(/_/g, ' ')}
-        </h2>
-        <p className="text-[10px] text-textMuted uppercase tracking-widest font-semibold">
-          AI-Generated Document
-        </p>
-      </div>
-    </div>
+  onShowToast,
+  document,
+  onRegenerateDoc,
+  onNextStep,
+  hasUnsavedChanges,
+}) => {
+  const [showMenu, setShowMenu] = useState(false);
 
-    <div className="flex items-center gap-2">
-      {isEditing && <EditorCommands editor={editor} />}
-      
-      {!isEditing ? (
-        <>
-          <button 
-            onClick={onCopy}
-            className="p-2.5 rounded-xl bg-surface border border-border/50 text-textMuted hover:text-white hover:bg-surfaceHover transition-all duration-200 group"
-            title="Copy Markdown"
-          >
-            {isCopied ? <Check size={18} className="text-green-500" /> : <Copy size={18} className="group-hover:scale-110 transition-transform" />}
-          </button>
-          <button 
-            onClick={onDownload}
-            className="p-2.5 rounded-xl bg-surface border border-border/50 text-textMuted hover:text-white hover:bg-surfaceHover transition-all duration-200 group"
-            title="Download .md"
-          >
-            <Download size={18} className="group-hover:translate-y-0.5 transition-transform" />
-          </button>
-          <div className="w-px h-6 bg-border/50 mx-1" />
-          <button 
-            onClick={onToggleRefine}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 font-bold text-sm ${
-              showRefine 
-                ? 'bg-primary text-white shadow-lg shadow-primary/20' 
-                : 'bg-surface border border-border/50 text-textMuted hover:text-primary hover:border-primary/30'
-            }`}
-          >
-            <Sparkles size={16} />
-            <span className="hidden md:inline">AI Refine</span>
-          </button>
-          <button 
-            onClick={onStartEdit}
-            className="flex items-center gap-2 px-4 py-2 bg-surface border border-border/50 text-textMuted hover:text-white hover:bg-surfaceHover rounded-xl transition-all duration-200 font-bold text-sm"
-          >
-            <Edit3 size={16} />
-            <span className="hidden md:inline">Edit</span>
-          </button>
-        </>
-      ) : (
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={onCancelEdit}
-            className="px-4 py-2 text-sm font-bold text-textMuted hover:text-white transition-colors"
-          >
-            Cancel
-          </button>
-          <button 
-            onClick={onSave}
-            className="flex items-center gap-2 px-5 py-2 bg-primary text-white rounded-xl hover:bg-primaryHover transition-all shadow-lg shadow-primary/20 font-bold text-sm"
-          >
-            <Check size={16} />
-            Save Changes
-          </button>
+  const getStatusBadge = () => {
+    if (isEditing) {
+      if (hasUnsavedChanges) return { text: 'Unsaved Changes', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' };
+      return { text: 'Editing', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
+    }
+    return { text: 'Ready', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' };
+  };
+
+  const statusBadge = getStatusBadge();
+
+  const metadata = document ? getDocMetadata(document.type) : null;
+
+  return (
+    <div className="px-8 py-3 border-b border-border/20 bg-surface/50 backdrop-blur-md sticky top-0 z-20 no-print">
+      <div className="max-w-4xl mx-auto flex items-center justify-between">
+        {/* Editing Status / Breadcrumb-like */}
+        <div className="flex items-center gap-3">
+          {isEditing ? (
+            <div className="flex items-center gap-2 px-2.5 py-1 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+              <Edit3 size={14} className="text-blue-400" />
+              <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">
+                {hasUnsavedChanges ? 'Drafting Changes...' : 'Editing Mode'}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-textMuted">
+              <div className="flex items-center gap-1.5">
+                <User size={12} />
+                <span>{metadata?.owner || 'AI Architect'}</span>
+              </div>
+              <div className="w-1 h-1 bg-border rounded-full"></div>
+              <span>{metadata?.description || 'Project Documentation'}</span>
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          {!isEditing ? (
+            <>
+              <button
+                onClick={onCopy}
+                className="p-2 text-textMuted hover:text-textMain hover:bg-surfaceHover rounded-lg transition-all group relative"
+                title="Copy Markdown"
+              >
+                {isCopied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
+              </button>
+
+              <button
+                onClick={onDownload}
+                className="p-2 text-textMuted hover:text-textMain hover:bg-surfaceHover rounded-lg transition-all"
+                title="Download .md"
+              >
+                <Download size={16} />
+              </button>
+
+              <div className="w-px h-4 bg-border/50 mx-1" />
+
+              <button
+                onClick={onStartEdit}
+                className="flex items-center gap-2 px-4 py-1.5 bg-surface border border-border hover:border-primary/50 text-textMain rounded-lg transition-all text-[10px] font-bold uppercase tracking-widest shadow-sm"
+              >
+                <Edit3 size={12} />
+                Edit
+              </button>
+              
+              {metadata?.cta && onNextStep && (
+                <button
+                  onClick={onNextStep}
+                  className="flex items-center gap-2 px-4 py-1.5 bg-primary hover:bg-primaryHover text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-primary/20"
+                >
+                  <Sparkles size={12} />
+                  {metadata.cta}
+                </button>
+              )}
+            </>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 mr-2">
+                <button
+                  onClick={() => editor?.commands.undo()}
+                  disabled={!editor?.can().undo()}
+                  className="p-2 text-textMuted hover:text-textMain disabled:opacity-30"
+                >
+                  <Undo size={16} />
+                </button>
+                <button
+                  onClick={() => editor?.commands.redo()}
+                  disabled={!editor?.can().redo()}
+                  className="p-2 text-textMuted hover:text-textMain disabled:opacity-30"
+                >
+                  <Redo size={16} />
+                </button>
+              </div>
+
+              <button
+                onClick={onCancelEdit}
+                className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-textMuted hover:text-textMain"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={onSave}
+                className="flex items-center gap-2 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-emerald-600/20"
+              >
+                <Check size={12} />
+                Save Changes
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
