@@ -2,119 +2,10 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co https://generativelanguage.googleapis.com; frame-src 'self' https://*.supabase.co;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co https://generativelanguage.googleapis.com https://openrouter.ai; frame-src 'self' https://*.supabase.co;">
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
     <title>Systematic Funnels - Intelligent Documentation Platform</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              background: '#0f1419',
-              surface: '#1a1f2e',
-              surfaceHover: '#252b3d',
-              primary: '#a78bfa', // Purple
-              primaryHover: '#8b5cf6',
-              secondary: '#14b8a6', // Teal
-              textMain: '#e5e7eb',
-              textMuted: '#9ca3af',
-              border: '#2d3748',
-            },
-            fontFamily: {
-              sans: ['Inter', 'system-ui', 'sans-serif'],
-            },
-            animation: {
-              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-            }
-          },
-        },
-      }
-    </script>
-    <style>
-      body {
-        background-color: #0f1419;
-        color: #e5e7eb;
-        font-family: 'Inter', sans-serif;
-      }
-      /* Custom Scrollbar */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #0f1419;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #2d3748;
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #4a5568;
-      }
-      .glass-panel {
-        background: rgba(26, 31, 46, 0.7);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-      }
-
-      /* Animations */
-      @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-      }
-      @keyframes slideInBottom {
-        from { transform: translateY(20px); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
-      }
-      @keyframes slideInRight {
-        from { transform: translateX(20px); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-      }
-      @keyframes slideInTop {
-        from { transform: translateY(-10px); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
-      }
-      @keyframes zoomIn {
-        from { transform: scale(0.95); opacity: 0; }
-        to { transform: scale(1); opacity: 1; }
-      }
-      
-      .animate-in {
-        animation-duration: 0.5s;
-        animation-fill-mode: both;
-      }
-      .fade-in {
-        animation-name: fadeIn;
-      }
-      .slide-in-from-bottom-4 { animation-name: slideInBottom; }
-      .slide-in-from-bottom-5 { animation-name: slideInBottom; }
-      .slide-in-from-bottom-8 { animation-name: slideInBottom; }
-      .slide-in-from-bottom-12 { animation-name: slideInBottom; }
-      .slide-in-from-right { animation-name: slideInRight; }
-      .slide-in-from-top-2 { animation-name: slideInTop; }
-      .zoom-in-95 { animation-name: zoomIn; }
-      
-      .delay-100 { animation-delay: 100ms; }
-      .delay-200 { animation-delay: 200ms; }
-      .delay-300 { animation-delay: 300ms; }
-      .delay-500 { animation-delay: 500ms; }
-      .duration-200 { animation-duration: 200ms; }
-      .duration-300 { animation-duration: 300ms; }
-      .duration-500 { animation-duration: 500ms; }
-      .duration-700 { animation-duration: 700ms; }
-      .duration-1000 { animation-duration: 1000ms; }
-
-      .no-scrollbar::-webkit-scrollbar {
-        display: none;
-      }
-      .no-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
-    </style>
   <script type="importmap">
 {
   "imports": {
@@ -128,7 +19,6 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
   <body>
     <div id="root"></div>

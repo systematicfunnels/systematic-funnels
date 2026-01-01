@@ -109,10 +109,10 @@ async function callGoogleGenAI(prompt: string, docType: string): Promise<AIResul
     };
 
     if (useSearch) config.tools = [{ googleSearch: {} }];
-
-    let modelName = 'gemini-2.5-flash';
+  
+    let modelName = 'gemini-2.0-flash';
     if (useThinking) {
-      modelName = 'gemini-3-pro-preview';
+      modelName = 'gemini-2.0-flash-thinking-exp-01-21';
       config.thinkingConfig = { thinkingBudget: 32768 };
     }
 
@@ -175,27 +175,42 @@ async function callGoogleGenAI(prompt: string, docType: string): Promise<AIResul
 
 async function callOpenRouter(prompt: string, docType: string, config: any): Promise<AIResult> {
   if (!config.openRouterKey) return { success: false, error: "Missing OpenRouter Key", docType };
+  
   try {
+    console.log(`[AI] Calling OpenRouter with model: ${config.openRouterModel}`);
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${config.openRouterKey}`,
-        "HTTP-Referer": window.location.origin,
-        "X-Title": "Systematic Funnels",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${config.openRouterKey.trim()}`
       },
       body: JSON.stringify({
         model: config.openRouterModel,
         messages: [
           { role: "system", content: "You are an expert technical writer. Generate professional markdown documentation." },
           { role: "user", content: prompt }
-        ]
+        ],
+        temperature: 0.7,
+        max_tokens: 4000
       })
     });
-    if (!response.ok) throw new Error((await response.json()).error?.message);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.error?.message || `HTTP ${response.status}: ${response.statusText}`;
+      throw new Error(errorMessage);
+    }
+
     const data = await response.json();
-    return { success: true, content: data.choices?.[0]?.message?.content || "", model: data.model };
+    const content = data.choices?.[0]?.message?.content;
+    
+    if (!content) {
+      throw new Error("OpenRouter returned an empty response. Please try a different model or check your credit balance.");
+    }
+
+    return { success: true, content: content, model: data.model };
   } catch (error: any) {
+    console.error(`[AI] OpenRouter Error for ${docType}:`, error);
     return { success: false, error: error.message, docType };
   }
 }
@@ -272,7 +287,6 @@ Budget: ${req.preferences.budget}
 
 // === REFINEMENT ===
 export async function refineDocument(currentContent: string, instruction: string, docType: string): Promise<AIResult> {
-  const config = getAIConfig();
   const prompt = `
     Role: Expert Editor.
     Task: Update the content below based on the instruction.
@@ -284,10 +298,32 @@ export async function refineDocument(currentContent: string, instruction: string
     Output: Updated Markdown only. No preamble.
   `;
 
-  if (config.provider === 'openrouter' && config.openRouterKey) {
-     return callOpenRouter(prompt, docType, config);
+  return callAI(prompt, docType);
+}
+
+// === HELPER: Clean & Parse JSON ===
+function safeParseJSON(content: string, type: 'object' | 'array' = 'object'): any {
+  try {
+    // 1. Remove markdown code blocks
+    let clean = content.replace(/```json/gi, '').replace(/```/gi, '').trim();
+    
+    // 2. Extract the actual JSON part using regex
+    const pattern = type === 'object' ? /\{[\s\S]*\}/ : /\[[\s\S]*\]/;
+    const match = clean.match(pattern);
+    
+    if (match) {
+      clean = match[0];
+    }
+    
+    // 3. Final cleanup for common AI hallucinations
+    // Remove trailing commas before closing braces/brackets
+    clean = clean.replace(/,(\s*[\]\}])/g, '$1');
+    
+    return JSON.parse(clean);
+  } catch (e) {
+    console.error(`[AI] JSON Parse Error:`, e, content);
+    throw new Error("Invalid JSON structure in AI response");
   }
-  return callGoogleGenAI(prompt, docType);
 }
 
 // === PROJECT EXTRACTION ===
@@ -319,12 +355,10 @@ export async function extractProjectDetails(input: string): Promise<AIResult> {
   
   if (result.success && result.content) {
     try {
-      // Clean up markdown if AI included it
-      const cleanJson = result.content.replace(/```json/g, '').replace(/```/g, '').trim();
-      return { success: true, data: JSON.parse(cleanJson) };
+      const data = safeParseJSON(result.content, 'object');
+      return { success: true, data };
     } catch (e) {
-      console.error("Failed to parse AI extraction JSON:", e, result.content);
-      return { success: false, error: "Failed to parse AI response" };
+      return { success: false, error: "Failed to parse project details from AI response" };
     }
   }
   
@@ -347,11 +381,10 @@ export async function brainstormFeatures(concept: string, problem: string): Prom
   
   if (result.success && result.content) {
     try {
-      const cleanJson = result.content.replace(/```json/g, '').replace(/```/g, '').trim();
-      return { success: true, features: JSON.parse(cleanJson) };
+      const features = safeParseJSON(result.content, 'array');
+      return { success: true, features };
     } catch (e) {
-      console.error("Failed to parse AI brainstorm JSON:", e, result.content);
-      return { success: false, error: "Failed to parse AI response" };
+      return { success: false, error: "Failed to parse features from AI response" };
     }
   }
   
@@ -409,10 +442,27 @@ export async function streamDocumentGeneration(
 
 async function callAI(prompt: string, docType: string): Promise<AIResult> {
   const config = getAIConfig();
+  console.log(`[AI] Attempting ${docType} via ${config.provider}`);
+
   if (config.provider === 'openrouter' && config.openRouterKey) {
+    const result = await callOpenRouter(prompt, docType, config);
+    if (result.success) return result;
+    
+    // If OpenRouter was explicitly chosen but failed, we still report it
+    console.warn(`[AI] OpenRouter failed, but it was the primary choice.`);
+    return result;
+  }
+
+  // Default to Google
+  const result = await callGoogleGenAI(prompt, docType);
+  
+  // If Google fails and we have an OpenRouter key, try fallback automatically
+  if (!result.success && config.openRouterKey) {
+    console.log(`[AI] Google failed, attempting automatic fallback to OpenRouter`);
     return callOpenRouter(prompt, docType, config);
   }
-  return callGoogleGenAI(prompt, docType);
+
+  return result;
 }
 
 // Helper to get doc metadata for UI
@@ -434,9 +484,8 @@ export async function validateOpenRouterConfig(apiKey: string, model: string = '
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": window.location.origin,
+        "Authorization": `Bearer ${apiKey.trim()}`
       },
       body: JSON.stringify({
         model: model,
@@ -448,8 +497,8 @@ export async function validateOpenRouterConfig(apiKey: string, model: string = '
     if (response.ok) {
       return { success: true };
     } else {
-      const data = await response.json();
-      return { success: false, error: data.error?.message || "Invalid configuration" };
+      const errorData = await response.json().catch(() => ({}));
+      return { success: false, error: errorData.error?.message || `HTTP ${response.status}: ${response.statusText}` };
     }
   } catch (error: any) {
     return { success: false, error: error.message };

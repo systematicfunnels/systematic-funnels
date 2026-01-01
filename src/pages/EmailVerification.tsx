@@ -16,9 +16,14 @@ const EmailVerification: React.FC = () => {
       const params = new URLSearchParams(location.hash.substring(1));
       const type = params.get('type');
       const token = params.get('token');
+      const email = params.get('email') || localStorage.getItem('pendingVerificationEmail');
 
-      if (type === 'signup' && token) {
-        const { error } = await supabase.auth.verifyOtp({ type: 'signup', token });
+      if (type === 'signup' && token && email) {
+        const { error } = await supabase.auth.verifyOtp({ 
+          type: 'signup', 
+          token,
+          email 
+        });
         if (error) {
           setMessage(error.message);
           setStatus('error');

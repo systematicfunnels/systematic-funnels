@@ -9,7 +9,7 @@ interface ProfileProps {
 }
 
 const Profile: React.FC<ProfileProps> = ({ user, projects = [], onShowToast }) => {
-  const [activeTab, setActiveTab] = useState<'overview'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'billing'>('overview');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
   // Derive activities from projects if any, otherwise empty
